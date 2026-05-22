@@ -1,0 +1,10 @@
+node_modules/
+*.log
+.DS_Store
+.idea/
+.vscode/
+coverage/
+
+# Never commit key material
+*.hex
+secret-key.*

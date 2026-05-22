@@ -1,0 +1,53 @@
+{
+  "name": "kxco-pq-cli",
+  "version": "0.1.0",
+  "description": "CLI for kxco-post-quantum: keygen, fingerprint, key rotation, signed rotation manifests. Generates ML-DSA-65 keypairs deterministically from a master secret + label; emits well-known JSON + RFC 8785 JCS-canonical signed manifests during rotation.",
+  "keywords": [
+    "post-quantum",
+    "pqc",
+    "ml-dsa",
+    "nist",
+    "fips-204",
+    "cli",
+    "keygen",
+    "key-rotation",
+    "kxco"
+  ],
+  "license": "Apache-2.0",
+  "author": "KXCO by Knightsbridge <hello@kxco.ai>",
+  "homepage": "https://kxco.ai",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/JackKXCO/kxco-pq-cli.git"
+  },
+  "bugs": {
+    "url": "https://github.com/JackKXCO/kxco-pq-cli/issues"
+  },
+  "type": "module",
+  "bin": {
+    "kxco-pq": "./bin/kxco-pq.js"
+  },
+  "files": [
+    "bin",
+    "src",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=20.19"
+  },
+  "peerDependencies": {
+    "kxco-post-quantum": "^1.1.2"
+  },
+  "devDependencies": {
+    "kxco-post-quantum": "^1.1.2"
+  },
+  "scripts": {
+    "test": "node --test test/jcs.test.js test/manifest.test.js test/keygen.test.js test/fingerprint.test.js test/rotate.test.js",
+    "lint": "node -c bin/kxco-pq.js && node -c src/cli.js && node -c src/jcs.js && node -c src/manifest.js && node -c src/commands/keygen.js && node -c src/commands/fingerprint.js && node -c src/commands/rotate.js"
+  },
+  "publishConfig": {
+    "provenance": true,
+    "access": "public"
+  }
+}
