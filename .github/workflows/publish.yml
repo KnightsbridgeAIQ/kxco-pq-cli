@@ -1,13 +1,10 @@
 name: publish
 
-# Triggered by pushing a v* tag (e.g. v0.1.0), or manually via the Actions
-# UI / GitHub API by dispatching with a tag name.
+# Triggered by pushing a v* tag (e.g. v0.1.0), or manually via the Actions UI.
 #
-# Auth path: npm Trusted Publishing via GitHub Actions OIDC.
-# Register at https://www.npmjs.com/package/kxco-pq-cli/access binding
-# org=JackKXCO, repo=kxco-pq-cli, workflow=publish.yml BEFORE the first
-# successful publish. No NPM_TOKEN, no NPM_OTP — the workflow's
-# `id-token: write` permission is the entire credential.
+# Auth path: NPM_TOKEN secret (automation token). Set this secret at
+# https://github.com/JackKXCO/kxco-pq-cli/settings/secrets/actions
+# using the automation token from the kxco npm account.
 #
 # All third-party actions are pinned by 40-char commit SHA.
 
@@ -24,7 +21,6 @@ on:
 
 permissions:
   contents: read
-  id-token: write
 
 jobs:
   publish:
@@ -42,16 +38,13 @@ jobs:
           node-version: '20'
           registry-url: 'https://registry.npmjs.org'
 
-      - name: Upgrade npm CLI to >=11.5.1
-        # Trusted Publishing's OIDC integration was added in npm 11.5.1 —
-        # older CLI versions fall through to a 404 PUT.
-        run: npm install -g npm@latest
-
       - name: Install dependencies
         run: npm ci
 
       - name: Run tests
         run: npm test
 
-      - name: Publish (Trusted Publishing + provenance via OIDC)
-        run: npm publish --provenance --access public
+      - name: Publish
+        run: npm publish --access public --no-provenance
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

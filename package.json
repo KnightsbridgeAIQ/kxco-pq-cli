@@ -25,7 +25,7 @@
   },
   "type": "module",
   "bin": {
-    "kxco-pq": "./bin/kxco-pq.js"
+    "kxco-pq": "bin/kxco-pq.js"
   },
   "files": [
     "bin",
@@ -47,7 +47,6 @@
     "lint": "node -c bin/kxco-pq.js && node -c src/cli.js && node -c src/jcs.js && node -c src/manifest.js && node -c src/commands/keygen.js && node -c src/commands/fingerprint.js && node -c src/commands/rotate.js"
   },
   "publishConfig": {
-    "provenance": true,
     "access": "public"
   }
 }
