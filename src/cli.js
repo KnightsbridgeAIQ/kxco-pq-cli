@@ -4,6 +4,7 @@
 import { keygen }      from './commands/keygen.js'
 import { fingerprint } from './commands/fingerprint.js'
 import { rotate }      from './commands/rotate.js'
+import { attest }      from './commands/attest.js'
 
 const USAGE = `kxco-pq — post-quantum key tooling for the kxco-post-quantum ecosystem
 
@@ -13,6 +14,8 @@ Usage:
   kxco-pq rotate      --old-secret <@file> --old-kid <hex> --new-master <hex|@file>
                       --info <label> --issuer <domain> --out-dir <dir>
                       [--previous-active-from <ISO8601>]
+  kxco-pq attest sign   --secret-key <hex|@file> --public-key <hex|@file> --file <path> [--out <path>]
+  kxco-pq attest verify --public-key <hex|@file> --attestation <path>
 
 Common:
   --master / --new-master / --old-secret accept either a 64-char hex string OR
@@ -48,6 +51,7 @@ export async function run(argv) {
     case 'keygen':      return keygen(rest)
     case 'fingerprint': return fingerprint(rest)
     case 'rotate':      return rotate(rest)
+    case 'attest':      return attest(rest)
     default:
       process.stderr.write(`kxco-pq: unknown command '${cmd}'\n\n${USAGE}`)
       return 2
