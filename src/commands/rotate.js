@@ -21,7 +21,7 @@
 //   well-known.json    Updated /.well-known/kxco-pq-pubkey doc with both keys
 
 import { mlDsa, fingerprint } from 'kxco-post-quantum'
-import { writeFileSync, mkdirSync, existsSync } from 'node:fs'
+import { writeFileSync, readFileSync, mkdirSync, existsSync } from 'node:fs'
 import { join } from 'node:path'
 
 import { parseFlags } from '../cli.js'
@@ -30,7 +30,7 @@ import { buildRotationManifest } from '../manifest.js'
 
 const FLAGS = new Set([
   'old-secret', 'old-kid', 'new-master', 'info', 'issuer', 'out-dir',
-  'previous-active-from',
+  'previous-active-from', 'relay', 'identity-file',
 ])
 
 export async function rotate(args) {
@@ -134,6 +134,32 @@ export async function rotate(args) {
   process.stdout.write(`  new kid:         ${newKid}  (active)\n`)
   process.stdout.write(`  effective at:    ${effectiveAt}\n`)
   process.stdout.write(`  manifest signed by previous kid: yes (ml-dsa-65)\n`)
+
+  // ── Optional on-chain relay anchor ────────────────────────────────────
+  if (flags.relay) {
+    if (!flags['identity-file']) throw new Error('rotate: --identity-file is required when --relay is provided')
+    let identity
+    try {
+      identity = JSON.parse(readFileSync(flags['identity-file'], 'utf-8'))
+    } catch {
+      throw new Error(`rotate: could not read --identity-file: ${flags['identity-file']}`)
+    }
+    if (!identity.kid || !identity.secretKey) {
+      throw new Error('rotate: --identity-file must contain { kid, secretKey } (hex)')
+    }
+    const { KxcoChain } = await import('kxco-pq-chain')
+    const secretBytes = new Uint8Array(Buffer.from(identity.secretKey, 'hex'))
+    const chain = new KxcoChain({
+      relay: flags.relay,
+      identity: {
+        kid: identity.kid,
+        sign: async (message) => mlDsa.ml_dsa65.sign(secretBytes, message),
+      },
+    })
+    const chainResult = await chain.rotateKey({ newKid, newPublicKeyHex: newPublicHex })
+    process.stdout.write(`  chain tx:        ${chainResult.txHash}  (block ${chainResult.blockNumber})\n`)
+  }
+
   process.stdout.write(`\nNext steps:\n`)
   process.stdout.write(`  1. Publish well-known.json at https://${flags.issuer}/.well-known/kxco-pq-pubkey\n`)
   process.stdout.write(`  2. Publish manifest.json at https://${flags.issuer}/.well-known/kxco-pq-rotation/${newKid}.json\n`)
