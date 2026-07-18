@@ -152,7 +152,7 @@ kxco-pq rotate \
 
 All cryptographic operations delegate to `kxco-post-quantum`, which wraps [`@noble/post-quantum`](https://github.com/paulmillr/noble-post-quantum) — audited by Cure53 (2024). Private key bytes are never echoed to stdout.
 
-To report a vulnerability, open a [private security advisory](https://github.com/JackKXCO/kxco-pq-cli/security/advisories/new) or email **security@kxco.ai**.
+To report a vulnerability, open a [private security advisory](https://github.com/KnightsbridgeAIQ/kxco-pq-cli/security/advisories/new) or email **security@kxco.ai**.
 
 ## License
 
