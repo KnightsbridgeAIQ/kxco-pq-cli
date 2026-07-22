@@ -1,6 +1,6 @@
 {
   "name": "kxco-pq-cli",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "description": "CLI for KXCO post-quantum institution key management: generate ML-DSA-65 keypairs, rotate keys with optional on-chain anchoring, sign files, and verify signatures without writing any code.",
   "keywords": [
     "post-quantum",
@@ -22,7 +22,7 @@
     "deterministic-keygen"
   ],
   "license": "Apache-2.0",
-  "author": "KXCO by Knightsbridge <hello@kxco.ai>",
+  "author": "Shayne Heffernan and John Heffernan",
   "contributors": [
     {
       "name": "Shayne Heffernan"
