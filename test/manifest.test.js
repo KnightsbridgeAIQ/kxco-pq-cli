@@ -101,7 +101,7 @@ test('verify rejects signature whose kid does not match previousKid', () => {
   assert.equal(r.reason, 'signature_kid_mismatch')
 })
 
-test('build is deterministic for a given effectiveAt + inputs', () => {
+test('build produces independently valid manifests for identical inputs', () => {
   const fixed = '2026-05-22T00:00:00.000Z'
   const a = buildRotationManifest({
     issuer: 'x.test', previousKid: OLD_KID, previousSecretKey: OLD.secretKey,
@@ -111,8 +111,13 @@ test('build is deterministic for a given effectiveAt + inputs', () => {
     issuer: 'x.test', previousKid: OLD_KID, previousSecretKey: OLD.secretKey,
     newKid: NEW_KID, newPublicKey: NEW.publicKey, effectiveAt: fixed,
   })
-  // ML-DSA-65 signatures are deterministic for a given secret + message
-  assert.equal(a.signature.value, b.signature.value)
+  // ML-DSA-65 signing is hedged (randomized) by default in @noble/post-quantum,
+  // the NIST-recommended mode, so byte-identical output across two calls with
+  // the same key and message is neither guaranteed nor desirable. What must
+  // hold is that both signatures are independently valid.
+  assert.notEqual(a.signature.value, b.signature.value)
+  assert.equal(verifyRotationManifest(a, OLD.publicKey).ok, true)
+  assert.equal(verifyRotationManifest(b, OLD.publicKey).ok, true)
 })
 
 test('build rejects missing required fields', () => {

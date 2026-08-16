@@ -1,5 +1,5 @@
-// `kxco-pq attest sign`   — sign a file with ML-DSA-65, emit JSON attestation
-// `kxco-pq attest verify` — verify a JSON attestation against a public key
+// `kxco-pq attest sign`,   sign a file with ML-DSA-65, emit JSON attestation
+// `kxco-pq attest verify`, verify a JSON attestation against a public key
 
 import { readFileSync, writeFileSync } from 'node:fs'
 import { attest as attestLib, verify as verifyLib } from 'kxco-pq-attest'
@@ -31,7 +31,7 @@ async function sign(args) {
   const secretKey = readHexInput(flags['secret-key'], 'secret-key')
   const publicKey = readHexInput(flags['public-key'], 'public-key')
   const payload   = readFileSync(flags.file)
-  const envelope  = attestLib(payload, { secretKey, publicKey })
+  const envelope  = await attestLib(payload, { secretKey, publicKey })
   const json      = JSON.stringify(envelope, null, 2) + '\n'
 
   if (flags.out) {
@@ -54,7 +54,7 @@ async function doVerify(args) {
   const result    = verifyLib(envelope, publicKey)
 
   if (!result.valid) {
-    process.stderr.write(`kxco-pq attest verify: INVALID — ${result.error}\n`)
+    process.stderr.write(`kxco-pq attest verify: INVALID, ${result.error}\n`)
     return 1
   }
 
