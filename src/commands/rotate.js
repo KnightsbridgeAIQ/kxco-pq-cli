@@ -153,7 +153,7 @@ export async function rotate(args) {
       relay: flags.relay,
       identity: {
         kid: identity.kid,
-        sign: async (message) => mlDsa.ml_dsa65.sign(secretBytes, message),
+        sign: async (message) => Buffer.from(mlDsa.sign(secretBytes, message), 'hex'),
       },
     })
     const chainResult = await chain.rotateKey({ newKid, newPublicKeyHex: newPublicHex })
