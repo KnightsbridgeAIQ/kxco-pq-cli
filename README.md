@@ -177,7 +177,11 @@ kxco-pq rotate \
 | [`kxco-post-quantum-webhook`](https://www.npmjs.com/package/kxco-post-quantum-webhook) | Runtime webhook signing and verification for Node.js frameworks |
 | `kxco-pq-cli` | Operator CLI — keygen, rotation, attestation; no application code required |
 
-All cryptographic operations delegate to `kxco-post-quantum`, which wraps [`@noble/post-quantum`](https://github.com/paulmillr/noble-post-quantum) — audited by Cure53 (2024). Private key bytes are never echoed to stdout.
+All cryptographic operations delegate to `kxco-post-quantum`, which wraps [`@noble/post-quantum`](https://github.com/paulmillr/noble-post-quantum). Private key bytes are never echoed to stdout.
+
+**`@noble/post-quantum` has not been audited by anyone.** It is self-audited by its maintainer (v0.6.1, April 2026). An earlier version of this README said Cure53 audited it in 2024; that was wrong. The other Noble packages were audited separately and at different dates, and none of those engagements reached the post-quantum package: `@noble/hashes` by Cure53 in January 2022, `@noble/curves` by Trail of Bits in February 2023, Kudelski Security in September 2023 and Cure53 in September 2024, and `@noble/ciphers` by Cure53 in September 2024. See [`kxco-post-quantum/AUDIT.md`](https://github.com/KnightsbridgeAIQ/kxco-post-quantum/blob/main/AUDIT.md).
+
+This package has had no third-party assessment either.
 
 To report a vulnerability, open a [private security advisory](https://github.com/KnightsbridgeAIQ/kxco-pq-cli/security/advisories/new) or email **security@kxco.ai**.
 
