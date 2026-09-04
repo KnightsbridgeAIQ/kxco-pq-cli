@@ -27,8 +27,11 @@ test('attest sign: writes attestation to stdout', async () => {
     ])
     assert.equal(code, 0)
     const json = JSON.parse(out.join(''))
-    assert.equal(json['kxco-attest'], '1')
-    assert.ok(typeof json.signature === 'string')
+    // v2 since kxco-pq-cli 2.0.0: `signature` became `sig`, and `alg` and the
+    // anchor are inside the signed message.
+    assert.equal(json['kxco-attest'], '2')
+    assert.ok(typeof json.sig === 'string')
+    assert.equal(json.alg, 'ML-DSA-65')
   } finally {
     process.stdout.write = orig
   }
@@ -46,7 +49,7 @@ test('attest sign: writes attestation to --out file', async () => {
 
   const { readFileSync } = await import('node:fs')
   const json = JSON.parse(readFileSync(outFile, 'utf-8'))
-  assert.equal(json['kxco-attest'], '1')
+  assert.equal(json['kxco-attest'], '2')
 
   const verifyCode = await attest(['verify',
     '--public-key', publicHex,
@@ -75,4 +78,20 @@ test('attest verify: invalid attestation returns exit code 1', async () => {
 test('attest: unknown subcommand returns 2', async () => {
   const code = await attest(['bogus'])
   assert.equal(code, 2)
+})
+
+// The compatibility promise: envelopes this CLI produced before 2.0.0 must keep
+// verifying, with no flag and no migration. An archive of signed files that
+// stopped verifying on an upgrade would be worse than useless.
+test('attest verify still reads a version 1 envelope', async () => {
+  const { attest: attestLib } = await import('kxco-pq-attest')
+  const v1 = await attestLib('legacy payload', kp, { version: '1' })
+  assert.equal(v1['kxco-attest'], '1')
+  assert.ok(typeof v1.signature === 'string', 'v1 uses `signature`, not `sig`')
+
+  const envPath = join(dir, 'legacy-v1.json')
+  writeFileSync(envPath, JSON.stringify(v1), 'utf-8')
+
+  const code = await attest(['verify', '--public-key', publicHex, '--attestation', envPath])
+  assert.equal(code, 0)
 })
