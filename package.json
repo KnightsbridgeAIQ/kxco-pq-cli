@@ -1,7 +1,7 @@
 {
   "name": "kxco-pq-cli",
   "version": "2.0.0",
-  "description": "CLI for KXCO post-quantum institution key management: generate ML-DSA-65 keypairs, rotate keys with optional on-chain anchoring, sign files, and verify signatures without writing any code.",
+  "description": "Command-line post-quantum key management for institutions: generate ML-DSA-65 keypairs, rotate keys with an on-chain anchor, sign files and verify signatures, all without writing code.",
   "keywords": [
     "post-quantum",
     "pqc",

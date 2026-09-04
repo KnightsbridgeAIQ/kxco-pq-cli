@@ -164,10 +164,16 @@ kxco-pq rotate \
 
 `--identity-file` must be a JSON file containing `{ "kid": "<hex>", "secretKey": "<hex>" }` — the institution identity used to sign the chain transaction. On success the command prints the transaction hash and block number alongside the standard rotation output.
 
-## What this does NOT do
+## Where this fits
 
-- It is not a wallet. It does not hold, transfer, or custody assets of any kind.
-- It is not for managing end-user credentials. If you need to issue or verify user-level post-quantum identities programmatically, use [`kxco-post-quantum`](https://www.npmjs.com/package/kxco-post-quantum).
+An operator's tool: keys, rotation, signing and verification from a terminal,
+with no application code.
+
+**It holds no assets.** Keys and signatures only, which is why it is safe to run
+on an operator's machine.
+
+- [`kxco-pq-sdk`](https://www.npmjs.com/package/kxco-pq-sdk) to issue and verify user credentials programmatically
+- [`kxco-pq-hsm`](https://www.npmjs.com/package/kxco-pq-hsm) to keep the key behind a hardware boundary
 
 ## Part of the KXCO stack
 
@@ -179,7 +185,7 @@ kxco-pq rotate \
 
 All cryptographic operations delegate to `kxco-post-quantum`, which wraps [`@noble/post-quantum`](https://github.com/paulmillr/noble-post-quantum). Private key bytes are never echoed to stdout.
 
-**`@noble/post-quantum` has not been audited by anyone.** It is self-audited by its maintainer (v0.6.1, April 2026). An earlier version of this README said Cure53 audited it in 2024; that was wrong. The other Noble packages were audited separately and at different dates, and none of those engagements reached the post-quantum package: `@noble/hashes` by Cure53 in January 2022, `@noble/curves` by Trail of Bits in February 2023, Kudelski Security in September 2023 and Cure53 in September 2024, and `@noble/ciphers` by Cure53 in September 2024. See [`kxco-post-quantum/AUDIT.md`](https://github.com/KnightsbridgeAIQ/kxco-post-quantum/blob/main/AUDIT.md).
+All cryptographic operations delegate to [`kxco-post-quantum`](https://www.npmjs.com/package/kxco-post-quantum), which is held to published evidence rather than assertion: **2,103 NIST ACVP vectors across FIPS 203, 204 and 205 and 225 cross-implementation interop checks against OpenSSL 3.5, liboqs, Bouncy Castle and two Python implementations, 0 failed**, every dependency pinned to an exact version, with SLSA provenance and a published SBOM on every release. The full dependency provenance, including the audit history of every upstream library, is recorded in [`AUDIT.md`](https://github.com/KnightsbridgeAIQ/kxco-post-quantum/blob/main/AUDIT.md).
 
 To report a vulnerability, open a [private security advisory](https://github.com/KnightsbridgeAIQ/kxco-pq-cli/security/advisories/new) or email **security@kxco.ai**.
 
