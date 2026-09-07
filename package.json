@@ -48,7 +48,8 @@
     "LICENSE",
     "README.md",
     "bin",
-    "src"
+    "src",
+    "ASSESSMENT.md"
   ],
   "engines": {
     "node": ">=20.19"
@@ -64,7 +65,8 @@
   },
   "scripts": {
     "test": "node --test test/jcs.test.js test/manifest.test.js test/keygen.test.js test/fingerprint.test.js test/rotate.test.js test/attest.test.js",
-    "lint": "node -c bin/kxco-pq.js && node -c src/cli.js && node -c src/jcs.js && node -c src/manifest.js && node -c src/commands/keygen.js && node -c src/commands/fingerprint.js && node -c src/commands/rotate.js"
+    "lint": "node -c bin/kxco-pq.js && node -c src/cli.js && node -c src/jcs.js && node -c src/manifest.js && node -c src/commands/keygen.js && node -c src/commands/fingerprint.js && node -c src/commands/rotate.js",
+    "evidence": "node scripts/build-evidence.mjs"
   },
   "funding": "https://kxco.ai",
   "publishConfig": {
