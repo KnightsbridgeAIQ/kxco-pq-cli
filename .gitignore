@@ -8,3 +8,6 @@ coverage/
 # Never commit key material
 *.hex
 secret-key.*
+
+# Generated evidence bundle. Reproduce with `npm run evidence`.
+dist/
