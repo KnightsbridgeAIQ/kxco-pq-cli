@@ -57,8 +57,15 @@ Without `--relay` the tool is entirely offline.
 **Retain history.** Nothing is stored beyond the files the operator asks for.
 The kid file exists so receivers have something stable to pin.
 
-**Start and update.** No release signing of its own. Published through CI with
-npm provenance. Note that a CLI is often installed globally and run outside a
+**Start and update.** Every release carries a SLSA provenance attestation,
+tying the published tarball to the commit and workflow that built it, and a
+CycloneDX SBOM as a GitHub Release asset at a permanent unauthenticated URL
+rather than an expiring build artifact. Both are checkable without asking us
+for anything.
+
+What this package does not have is release-asset signing with ML-DSA-65
+against a committed public key. That is the primitives package, it is the
+stronger control, and it should not be read across to this one. Note that a CLI is often installed globally and run outside a
 project's lockfile, so the version in use is easier to lose track of here than
 in a library.
 
