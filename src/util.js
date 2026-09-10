@@ -6,11 +6,29 @@ import { readFileSync } from 'node:fs'
  * Resolve a `--flag <value>` that accepts either a raw hex string or `@/path/to/file`.
  * Returns a Buffer of the decoded bytes.
  *
+ * Prefer the `@path` form for anything secret. A value typed on the command
+ * line is recorded in shell history and is readable from the process table by
+ * every other user on the machine for as long as the command runs. The file
+ * form keeps it out of both.
+ *
  * @param {string} input
  * @param {string} fieldName    — only for error messages
+ * @param {{ secret?: boolean }} [opts] — when true, a literal value warns
  * @returns {Buffer}
  */
-export function readHexInput(input, fieldName) {
+export function readHexInput(input, fieldName, opts = {}) {
+  if (opts.secret && typeof input === 'string' && !input.startsWith('@')) {
+    process.emitWarning(
+      `${fieldName} was given on the command line. It is now in your shell ` +
+      'history and was readable from the process table while this ran. Pass ' +
+      `--${fieldName.replace(/ /g, '-')} @/path/to/file instead.`,
+      'KxcoSecretOnCommandLine',
+    )
+  }
+  return readHexInputInner(input, fieldName)
+}
+
+function readHexInputInner(input, fieldName) {
   if (typeof input !== 'string' || input.length === 0) {
     throw new Error(`${fieldName}: empty input`)
   }

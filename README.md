@@ -63,9 +63,21 @@ Generate a deterministic ML-DSA-65 keypair from a 32-byte master secret and an i
 
 ```bash
 kxco-pq keygen \
-  --master 'ab83...64 hex chars...e7' \
+  --master @./master.hex \
   --info   'my-institution-v1' \
   --out-dir ./keys
+```
+
+Every flag that takes hex accepts `@path` and reads the value from the file. Use
+it for anything secret: a value typed on the command line is recorded in your
+shell history and is readable from the process table by every other user on the
+machine for as long as the command runs. Pass a secret literally and the tool
+says so:
+
+```
+KxcoSecretOnCommandLine: master was given on the command line. It is now in your
+shell history and was readable from the process table while this ran. Pass
+--master @/path/to/file instead.
 ```
 
 Outputs:

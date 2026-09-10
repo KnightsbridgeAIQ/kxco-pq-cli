@@ -16,7 +16,7 @@ export async function keygen(args) {
     if (!flags[required]) throw new Error(`keygen: --${required} is required`)
   }
 
-  const master = readHexInput(flags.master, 'master')
+  const master = readHexInput(flags.master, 'master', { secret: true })
   if (master.length !== 32) throw new Error(`keygen: --master must decode to 32 bytes (got ${master.length})`)
 
   const kp  = mlDsa.keypairFromMaster(master, flags.info)

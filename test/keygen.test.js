@@ -1,6 +1,6 @@
 import { test }   from 'node:test'
 import assert      from 'node:assert/strict'
-import { mkdtempSync, readFileSync, rmSync } from 'node:fs'
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { mlDsa, fingerprint } from 'kxco-post-quantum'
@@ -54,4 +54,30 @@ test('keygen: rejects wrong-length master', async () => {
     keygen(['--master', 'aa', '--info', 'x', '--out-dir', '/tmp/never-used']),
     /must decode to 32 bytes/,
   )
+})
+
+test('a secret on the command line warns; the @file form does not', async (t) => {
+  const { readHexInput } = await import('../src/util.js')
+
+  // Spy on emitWarning rather than listening for 'warning': the event is
+  // process-wide, so other tests in this file would land in the same bucket.
+  const seen = []
+  const original = process.emitWarning
+  process.emitWarning = (message, name) => { seen.push({ message, name }) }
+  t.after(() => { process.emitWarning = original })
+
+  const hex = 'ab'.repeat(32)
+  const dir  = mkdtempSync(join(tmpdir(), 'kxco-cli-'))
+  const file = join(dir, 'master.hex')
+  writeFileSync(file, hex)
+  t.after(() => rmSync(dir, { recursive: true, force: true }))
+
+  readHexInput(hex, 'master', { secret: true })   // literal secret: warns
+  readHexInput(hex, 'public key')                 // not secret: silent
+  readHexInput('@' + file, 'master', { secret: true })  // the safe form: silent
+
+  assert.equal(seen.length, 1)
+  assert.equal(seen[0].name, 'KxcoSecretOnCommandLine')
+  assert.match(seen[0].message, /shell history/)
+  assert.match(seen[0].message, /--master @\/path\/to\/file/)
 })

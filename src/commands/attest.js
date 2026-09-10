@@ -28,7 +28,7 @@ async function sign(args) {
     if (!flags[r]) throw new Error(`attest sign: --${r} is required`)
   }
 
-  const secretKey = readHexInput(flags['secret-key'], 'secret-key')
+  const secretKey = readHexInput(flags['secret-key'], 'secret-key', { secret: true })
   const publicKey = readHexInput(flags['public-key'], 'public-key')
   const payload   = readFileSync(flags.file)
   const envelope  = await attestLib(payload, { secretKey, publicKey })

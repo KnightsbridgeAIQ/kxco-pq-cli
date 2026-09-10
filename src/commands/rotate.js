@@ -40,7 +40,7 @@ export async function rotate(args) {
   }
 
   // ── Load OLD key material ─────────────────────────────────────────────
-  const oldSecret = readHexInput(flags['old-secret'], 'old secret key')
+  const oldSecret = readHexInput(flags['old-secret'], 'old secret', { secret: true })
   if (oldSecret.length !== 4032) {
     throw new Error(`rotate: --old-secret must decode to 4032 bytes (ML-DSA-65 secret key; got ${oldSecret.length})`)
   }
@@ -67,7 +67,7 @@ export async function rotate(args) {
   // verification + the issuer's TLS identity.
 
   // ── Derive NEW keypair ─────────────────────────────────────────────────
-  const newMaster = readHexInput(flags['new-master'], 'new master')
+  const newMaster = readHexInput(flags['new-master'], 'new master', { secret: true })
   if (newMaster.length !== 32) {
     throw new Error(`rotate: --new-master must decode to 32 bytes (got ${newMaster.length})`)
   }

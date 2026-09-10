@@ -1,5 +1,29 @@
 # Changelog
 
+## 2.1.0
+
+**A secret passed on the command line now says so.** Every hex flag already
+accepted `@path` and read the value from a file; that is now the documented form
+and the literal form warns:
+
+```
+KxcoSecretOnCommandLine: master was given on the command line. It is now in your
+shell history and was readable from the process table while this ran. Pass
+--master @/path/to/file instead.
+```
+
+It applies to `--master`, `--new-master`, `--old-secret` and `--secret-key`, and
+not to public keys, where a literal is fine. The README's `keygen` example now
+shows `@./master.hex`.
+
+An argument is recorded in shell history and readable from the process table by
+every other user on the machine while a command runs. The safe path existed; it
+was not the one the documentation demonstrated.
+
+**ASSESSMENT.md rewritten** to lead with what the tool does — deterministic
+recoverable keys, rotation as one auditable command with an on-chain receipt,
+offline unless `--relay` is passed — rather than with its handling constraints.
+
 ## 2.0.1
 
 Documentation and a dependency refresh. No source change.
