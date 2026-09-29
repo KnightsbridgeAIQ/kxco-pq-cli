@@ -1,5 +1,25 @@
 # Changelog
 
+## 2.1.1
+
+Documentation. No source change.
+
+**The npm page leads with what the package proves.** The first screen now says
+what the tool does from a terminal: recoverable deterministic keys, rotation in
+one signed command, offline operation unless `--relay` is passed, and the
+evidence underneath it, alongside the migration dates set by NIST, Executive
+Order 14412, OMB M-26-15 and the UK NCSC.
+
+A family table maps every KXCO package to the job it does, and a new For
+institutions section sets out the operated services and how to reach us. The
+evidence documents are unchanged and linked from the page.
+
+A new quick start takes a fresh install from master secret to a verified
+attestation in four commands. The rotation examples chain from `keygen`, and
+on-chain rotation names what it needs: `kxco-pq-chain` installed alongside the
+CLI, and `KXCO_LICENCE_KEY` set. The `attest sign` section lists the version 2
+envelope fields, and the Knightsbridge Law link points at knightsbridgelaw.com.
+
 ## 2.1.0
 
 **A secret passed on the command line now says so.** Every hex flag already

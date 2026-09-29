@@ -1,38 +1,32 @@
 # kxco-pq-cli
 
+**Post-quantum key management from a terminal: deterministic ML-DSA-65 keys, signed rotation and verifiable attestations, with no code to write.**
+
 [![npm](https://img.shields.io/npm/v/kxco-pq-cli?label=npm&color=b0964f)](https://www.npmjs.com/package/kxco-pq-cli)
+[![downloads](https://img.shields.io/npm/dm/kxco-pq-cli?label=downloads&color=b0964f)](https://www.npmjs.com/package/kxco-pq-cli)
+[![NIST ACVP](https://img.shields.io/badge/NIST_ACVP-1,793_passed,_0_failed-2ea44f)](https://github.com/KnightsbridgeAIQ/kxco-post-quantum/blob/main/CONFORMANCE.md)
+[![npm provenance](https://img.shields.io/badge/npm-provenance-2ea44f)](https://www.npmjs.com/package/kxco-pq-cli)
 [![Socket](https://socket.dev/api/badge/npm/package/kxco-pq-cli)](https://socket.dev/npm/package/kxco-pq-cli)
 [![license](https://img.shields.io/badge/license-Apache--2.0-blue)](./LICENSE)
 [![node](https://img.shields.io/node/v/kxco-pq-cli.svg)](https://nodejs.org)
 
-CLI for KXCO post-quantum institution key management. Generates ML-DSA-65 keypairs, rotates institution keys with optional on-chain anchoring, signs files, and verifies signatures — without writing any code.
+CLI for KXCO post-quantum institution key management. Generates ML-DSA-65 keypairs, rotates institution keys with optional on-chain anchoring, signs files and verifies signatures, all without writing any code.
 
-## Release integrity
+- **Keys you can always recover.** A keypair derives from a 32-byte master and an info label through HKDF, so the same inputs always give the same kid. A key regenerates on a clean machine without a backup of the key itself.
+- **Rotation in one command.** `rotate` derives the new key, signs a rotation manifest with the outgoing key so existing receivers can verify the handoff, and writes the updated well-known document. Add `--relay` and it anchors the rotation on chain and prints the transaction hash and block number.
+- **Air-gapped by default.** `keygen`, `fingerprint`, `attest sign` and `attest verify` run offline, and nothing leaves the machine unless you pass `--relay`.
+- **Secrets stay out of shell history.** Every hex flag reads `@path` from a file, and a secret typed on the command line is flagged with a warning that says why.
+- **Standard formats.** Rotation manifests are RFC 8785 JCS-canonical, and attestations are `kxco-pq-attest` version 2 envelopes any counterparty can verify.
+- **Proven underneath.** 1,793 NIST ACVP vectors passed, 0 failed, and 225 interoperability checks against liboqs, Bouncy Castle and the Python reference implementations, 0 failed, in [`kxco-post-quantum`](https://github.com/KnightsbridgeAIQ/kxco-post-quantum/blob/main/CONFORMANCE.md).
+- **A supply chain you can check.** SLSA provenance and a CycloneDX SBOM on every release since 1.2.5, and every GitHub Action pinned by commit SHA.
 
-Every release of this package is checkable without asking us for anything.
+**The migration has dates.**
 
-- **Provenance.** Each release carries a SLSA provenance attestation tying the
-  published tarball to the commit and workflow that built it. Verify with
-  `npm audit signatures`, or read it directly from
-  `registry.npmjs.org/-/npm/v1/attestations/kxco-pq-cli@<version>`.
-- **Bill of materials.** A CycloneDX SBOM is published as a GitHub Release asset
-  at `releases/download/v<version>/sbom.cyclonedx.json`, a permanent
-  unauthenticated URL. Not an expiring build artifact.
-- **Pinned where it matters.** Third-party dependencies are pinned to exact
-  versions, never ranges, so the code that performs the cryptography cannot
-  change without a release. Sibling `kxco-*` packages sit on caret ranges
-  deliberately: it means a correctness fix in the base package reaches you
-  without a release of every package above it. That is not theoretical. When
-  `@noble/post-quantum` 0.7.1 was found to fail NIST SLH-DSA verification
-  vectors, the revert in the base package propagated here on the next install.
-  Every GitHub Action is pinned by 40-character commit SHA.
-- **Conformance underneath.** The cryptography comes from
-  [`kxco-post-quantum`](https://www.npmjs.com/package/kxco-post-quantum), which
-  is run against **2,103 NIST ACVP vectors: 1,793 passed, 0 failed, 310 skipped** and a **225-check
-  cross-implementation interoperability matrix** against liboqs, Bouncy Castle
-  and two pure-Python implementations, in both directions and with negative
-  controls. Its published tarball also rebuilds bit-for-bit from its own tag,
-  verified in CI on every run.
+- **NIST** published [FIPS 203](https://csrc.nist.gov/pubs/fips/203/final), [FIPS 204](https://csrc.nist.gov/pubs/fips/204/final) and [FIPS 205](https://csrc.nist.gov/pubs/fips/205/final) in August 2024.
+- **United States:** [Executive Order 14412](https://www.federalregister.gov/documents/2026/06/25/2026-12909/securing-the-nation-against-advanced-cryptographic-attacks), signed on 22 June 2026, moves federal high-value and high-impact systems to post-quantum key establishment by 31 December 2030 and to post-quantum signatures by 31 December 2031. [OMB M-26-15](https://www.whitehouse.gov/wp-content/uploads/2026/06/M-26-15-Execution-of-the-Migration-to-Post-Quantum-Cryptography.pdf) requires PQC-agile libraries for all new applications.
+- **United Kingdom:** the [NCSC](https://www.ncsc.gov.uk/guidance/pqc-migration-timelines) sets 2028, 2031 and 2035 as its migration milestones.
+
+[Quick start](#quick-start) · [Commands](#commands) · [For institutions](#for-institutions) · [Assessment notes](./ASSESSMENT.md) · [Changelog](./CHANGELOG.md) · [kxco.ai](https://kxco.ai)
 
 ## When to use this
 
@@ -40,7 +34,7 @@ Every release of this package is checkable without asking us for anything.
 - DevOps and infra teams who need key rotation without writing Node.js
 - Scripting identity operations in CI/CD pipelines
 
-If you need to do any of this programmatically in your own application, use [`kxco-post-quantum`](https://www.npmjs.com/package/kxco-post-quantum) or [`kxco-post-quantum-webhook`](https://www.npmjs.com/package/kxco-post-quantum-webhook) instead.
+To do the same from your own application code, use [`kxco-post-quantum`](https://www.npmjs.com/package/kxco-post-quantum), or [`kxco-post-quantum-webhook`](https://www.npmjs.com/package/kxco-post-quantum-webhook) for webhooks.
 
 ## Install
 
@@ -54,6 +48,48 @@ You also need `kxco-post-quantum` available as a peer dependency:
 ```bash
 npm install -g kxco-post-quantum
 ```
+
+## Quick start
+
+From a fresh install to a verified attestation, with `payload.json` standing for
+any file you want to sign:
+
+```bash
+node -e "require('node:fs').writeFileSync('master.hex', require('node:crypto').randomBytes(32).toString('hex'))"
+kxco-pq keygen --master @./master.hex --info 'my-institution-v1' --out-dir ./keys
+kxco-pq attest sign --secret-key @./keys/secret-key.hex --public-key @./keys/public-key.hex --file payload.json --out payload.attestation.json
+kxco-pq attest verify --public-key @./keys/public-key.hex --attestation payload.attestation.json
+```
+
+```
+kxco-pq attest verify: VALID
+  signer kid:  9067c1cfad2573df
+  issued at:   2026-09-29T12:19:02.269Z
+  payload:     28 bytes
+```
+
+`master.hex` regenerates every key derived from it, so it belongs in your
+secrets manager.
+
+## For institutions
+
+The cryptography is free under Apache-2.0, works offline and needs nothing from
+KXCO, now or in ten years. What KXCO sells is the part that has to be operated:
+an answer about the present.
+
+| Service | What you get |
+|---|---|
+| Hosted key registry | Whether a key is active, revoked or rotated, answered at verification time |
+| Meta-transaction relay | KXCO validates your signed intent, pays the gas and submits it, so you never hold a token or run a node |
+| On-chain anchoring | A timestamp on Armature L1 that the chain itself has verified |
+| Live revocation | `anchored+live` verification, which confirms the signing key is still trusted now |
+| Support and SLA | Availability commitments, an escalation path and a named contact |
+
+Priced in USD, per seat, per year. No tokens, no nodes and no wallets. The line
+between free and paid is set out in
+[LICENCE-PRODUCT.md](https://github.com/KnightsbridgeAIQ/kxco-post-quantum/blob/main/LICENCE-PRODUCT.md).
+
+**Talk to us: [admin@kxco.ai](mailto:admin@kxco.ai)** · [kxco.ai](https://kxco.ai)
 
 ## Commands
 
@@ -81,13 +117,11 @@ shell history and was readable from the process table while this ran. Pass
 ```
 
 Outputs:
-- `keys/secret-key.hex` — 4032-byte secret key, hex-encoded. Store in a secrets manager, `chmod 600`. Never commit.
-- `keys/public-key.hex` — 1952-byte public key, hex-encoded.
-- `keys/kid.txt` — 16-character hex fingerprint. This is what receivers pin.
+- `keys/secret-key.hex`: 4032-byte secret key, hex-encoded. Store in a secrets manager, `chmod 600`. Never commit.
+- `keys/public-key.hex`: 1952-byte public key, hex-encoded.
+- `keys/kid.txt`: 16-character hex fingerprint. This is what receivers pin.
 
 The keypair is deterministic: same `--master` + same `--info` always produces the same kid. Restore from master; never lose a key.
-
----
 
 ### `kxco-pq fingerprint`
 
@@ -99,34 +133,34 @@ kxco-pq fingerprint @./keys/public-key.hex
 
 Accepts a hex string directly or a `@file` reference. Prints the 16-char hex kid.
 
----
-
 ### `kxco-pq rotate`
 
 Rotate to a new keypair. Derives the new keypair, builds a signed rotation manifest (signed by the outgoing key so existing receivers can verify the handoff), and produces an updated `.well-known/kxco-pq-pubkey` document.
 
 ```bash
 kxco-pq rotate \
-  --old-secret @./current-keys/secret-key.hex \
-  --old-kid    a1b2c3d4e5f60718 \
-  --new-master '<32-byte master for the new key, hex>' \
+  --old-secret @./keys/secret-key.hex \
+  --old-kid    "$(cat keys/kid.txt)" \
+  --new-master @./new-master.hex \
   --info       'my-institution-v2' \
-  --issuer     'chain.kxco.ai' \
+  --issuer     'example.com' \
   --out-dir    ./rotated-keys
 ```
 
+`--old-kid` is the kid of the outgoing key, as written to `keys/kid.txt`, and
+`new-master.hex` is a fresh 32-byte master made the same way as the first.
+`--issuer` is the domain that publishes your keys.
+
 Outputs (in `--out-dir`):
-- `secret-key.hex`, `public-key.hex`, `kid.txt` — new keypair
-- `manifest.json` — RFC 8785 JCS-canonical rotation manifest, signed by the old kid
-- `well-known.json` — ready to publish at `https://<issuer>/.well-known/kxco-pq-pubkey`
+- `secret-key.hex`, `public-key.hex`, `kid.txt`: the new keypair
+- `manifest.json`: RFC 8785 JCS-canonical rotation manifest, signed by the old kid
+- `well-known.json`: ready to publish at `https://<issuer>/.well-known/kxco-pq-pubkey`
 
 After running:
 1. Publish `well-known.json` at the well-known URL.
 2. Publish `manifest.json` at `https://<issuer>/.well-known/kxco-pq-rotation/<new-kid>.json`.
 3. Tell receivers to add the new kid to their `pinnedKids[]` alongside the old one.
 4. After the drain window, retire the old kid and discard its secret key.
-
----
 
 ### `kxco-pq attest sign`
 
@@ -140,9 +174,7 @@ kxco-pq attest sign \
   --out        payload.attestation.json
 ```
 
-The envelope contains `algorithm`, `signerKid`, `issuedAt`, `payload` (base64url), and `signature` (base64url ML-DSA-65). Any counterparty can verify it without trust delegation.
-
----
+The output is a `kxco-pq-attest` version 2 envelope: `kxco-attest` (the format version), `payload` (base64url), `alg`, `kid`, `sig` (base64url ML-DSA-65), `issuedAt` and `verifyModeHint`. Any counterparty can verify it without trust delegation.
 
 ### `kxco-pq attest verify`
 
@@ -154,50 +186,83 @@ kxco-pq attest verify \
   --attestation payload.attestation.json
 ```
 
-Prints `VALID` with signer kid, issue timestamp, and payload size — or `INVALID` with a reason and exits 1.
-
----
+Prints `VALID` with the signer kid, issue time and payload size, or `INVALID` with a reason and exit code 1. It reads version 1 and version 2 envelopes, so every envelope this CLI has produced keeps verifying.
 
 ## Key rotation on-chain
 
-Pass `--relay` and `--identity-file` to anchor the rotation to the KXCO chain in the same operation:
+Pass `--relay` and `--identity-file` to anchor the rotation to the KXCO chain in
+the same operation. Install [`kxco-pq-chain`](https://www.npmjs.com/package/kxco-pq-chain)
+alongside the CLI, and set `KXCO_LICENCE_KEY` to your licence for the hosted
+relay:
+
+```bash
+npm install -g kxco-pq-chain
+```
 
 ```bash
 kxco-pq rotate \
-  --old-secret    @./current-keys/secret-key.hex \
-  --old-kid       a1b2c3d4e5f60718 \
-  --new-master    '<new master hex>' \
+  --old-secret    @./keys/secret-key.hex \
+  --old-kid       "$(cat keys/kid.txt)" \
+  --new-master    @./new-master.hex \
   --info          'my-institution-v2' \
-  --issuer        'chain.kxco.ai' \
+  --issuer        'example.com' \
   --out-dir       ./rotated-keys \
   --relay         https://relay.kxco.ai \
   --identity-file ./identity.json
 ```
 
-`--identity-file` must be a JSON file containing `{ "kid": "<hex>", "secretKey": "<hex>" }` — the institution identity used to sign the chain transaction. On success the command prints the transaction hash and block number alongside the standard rotation output.
+`--identity-file` must be a JSON file containing `{ "kid": "<hex>", "secretKey": "<hex>" }`: the institution identity used to sign the chain transaction. On success the command prints the transaction hash and block number alongside the standard rotation output.
 
-## Where this fits
+## The KXCO post-quantum family
 
 An operator's tool: keys, rotation, signing and verification from a terminal,
-with no application code.
+with no application code. It handles keys and signatures only, which is what
+makes it safe to run on an operator's machine. The rest of the family covers
+the jobs around it:
 
-**It holds no assets.** Keys and signatures only, which is why it is safe to run
-on an operator's machine.
+| You need to | Install |
+|---|---|
+| Put the whole stack in one install | [`kxco-pq`](https://www.npmjs.com/package/kxco-pq) |
+| Use ML-DSA, ML-KEM and SLH-DSA directly | [`kxco-post-quantum`](https://www.npmjs.com/package/kxco-post-quantum) |
+| Keep signing keys on the HSM you already run | [`kxco-pq-hsm`](https://www.npmjs.com/package/kxco-pq-hsm) |
+| Sign a document or record anyone can verify offline | [`kxco-pq-attest`](https://www.npmjs.com/package/kxco-pq-attest) |
+| Keep a tamper-evident audit trail | [`kxco-pq-audit`](https://www.npmjs.com/package/kxco-pq-audit) |
+| Verify a signature in a browser, with no server | [`kxco-verify`](https://www.npmjs.com/package/kxco-verify) |
+| Issue institution identity credentials | [`kxco-pq-sdk`](https://www.npmjs.com/package/kxco-pq-sdk) |
+| Encrypt files and payloads to one or many recipients | [`kxco-pq-vault`](https://www.npmjs.com/package/kxco-pq-vault) |
+| Encrypt Node streams and WebSockets | [`kxco-pq-tls`](https://www.npmjs.com/package/kxco-pq-tls) |
+| Sign and verify webhooks | [`kxco-post-quantum-webhook`](https://www.npmjs.com/package/kxco-post-quantum-webhook) |
+| Give an AI agent an identity a verified institution sponsors | [`kxco-pq-agent`](https://www.npmjs.com/package/kxco-pq-agent) |
+| Have Armature L1 verify a signature in consensus | [`kxco-pq-chain`](https://www.npmjs.com/package/kxco-pq-chain) |
+| Prove an envelope at three levels, offline to on-chain | [`kxco-pq-network`](https://www.npmjs.com/package/kxco-pq-network) |
+| Generate and rotate keys from a terminal | [`kxco-pq-cli`](https://www.npmjs.com/package/kxco-pq-cli) |
+| Find quantum-vulnerable cryptography in a dependency tree | [`kxco-pq-scan`](https://www.npmjs.com/package/kxco-pq-scan) |
+| Fail the build when code reaches past the wrapper | [`eslint-plugin-kxco-pq`](https://www.npmjs.com/package/eslint-plugin-kxco-pq) |
 
-- [`kxco-pq-sdk`](https://www.npmjs.com/package/kxco-pq-sdk) to issue and verify user credentials programmatically
-- [`kxco-pq-hsm`](https://www.npmjs.com/package/kxco-pq-hsm) to keep the key behind a hardware boundary
+## Release integrity
 
-## Part of the KXCO stack
+Every release since 1.2.5 carries a SLSA provenance attestation tying the published tarball to
+the commit and workflow that built it: verify with `npm audit signatures`, or read
+it from `registry.npmjs.org/-/npm/v1/attestations/kxco-pq-cli@<version>`. A CycloneDX
+SBOM is published, from v1.2.5, as a GitHub Release asset at
+`releases/download/v<version>/sbom.cyclonedx.json`, a permanent unauthenticated
+URL. Sibling `kxco-*` packages sit on caret ranges so a correctness fix in the
+base package reaches you on the next install, with no release of every package
+above it.
 
-| Package | Purpose |
-|---------|---------|
-| [`kxco-post-quantum`](https://www.npmjs.com/package/kxco-post-quantum) | Core ML-DSA-65 primitives (keygen, sign, verify, fingerprint) |
-| [`kxco-post-quantum-webhook`](https://www.npmjs.com/package/kxco-post-quantum-webhook) | Runtime webhook signing and verification for Node.js frameworks |
-| `kxco-pq-cli` | Operator CLI — keygen, rotation, attestation; no application code required |
+## Security
 
-All cryptographic operations delegate to `kxco-post-quantum`, which wraps [`@noble/post-quantum`](https://github.com/paulmillr/noble-post-quantum). Private key bytes are never echoed to stdout.
+**ML-DSA-65** (NIST FIPS 204) via [`kxco-post-quantum`](https://www.npmjs.com/package/kxco-post-quantum), running on the OpenSSL 3.5 primitives where the runtime provides them. No custom cryptography. Private key bytes are never echoed to stdout.
 
-All cryptographic operations delegate to [`kxco-post-quantum`](https://www.npmjs.com/package/kxco-post-quantum), which is held to published evidence rather than assertion: **2,103 NIST ACVP vectors across FIPS 203, 204 and 205 and 225 cross-implementation interop checks against OpenSSL 3.5, liboqs, Bouncy Castle and two Python implementations, 0 failed**, every dependency pinned to an exact version, with SLSA provenance and a published SBOM on every release. The full dependency provenance, including the audit history of every upstream library, is recorded in [`AUDIT.md`](https://github.com/KnightsbridgeAIQ/kxco-post-quantum/blob/main/AUDIT.md).
+Evidenced, and reproducible on your own machine:
+
+- **1,793 NIST ACVP vectors passed, 0 failed** across FIPS 203, 204 and 205, pinned by digest, per [CONFORMANCE.md](https://github.com/KnightsbridgeAIQ/kxco-post-quantum/blob/main/CONFORMANCE.md). The other 310 are pairings the library refuses as weaker than the parameter set
+- **225 interoperability checks passed, 0 failed**, against OpenSSL 3.5, liboqs, Bouncy Castle and dilithium-py/kyber-py, in both directions
+- **SLSA provenance** on every release since 1.2.5: verify with `npm audit signatures`
+- **CycloneDX SBOM** published with every release since 1.2.5
+- `npm run evidence` regenerates this package's evidence bundle from source
+
+Dependency audit history is recorded in [AUDIT.md](https://github.com/KnightsbridgeAIQ/kxco-post-quantum/blob/main/AUDIT.md).
 
 To report a vulnerability, open a [private security advisory](https://github.com/KnightsbridgeAIQ/kxco-pq-cli/security/advisories/new) or email **security@kxco.ai**.
 
@@ -207,6 +272,6 @@ Apache 2.0. See [LICENSE](./LICENSE).
 
 ## Maintainers
 
-Shayne Heffernan and John Heffernan — [KXCO by Knightsbridge](https://kxco.ai)
+Shayne Heffernan and John Heffernan, [KXCO by Knightsbridge](https://kxco.ai)
 
-[Knightsbridge Law](https://knightsbridge.law) · [target150.com](https://target150.com) · [livetradingnews.com](https://livetradingnews.com)
+[Knightsbridge Law](https://knightsbridgelaw.com) · [target150.com](https://target150.com) · [livetradingnews.com](https://livetradingnews.com)

@@ -1,7 +1,7 @@
 {
   "name": "kxco-pq-cli",
-  "version": "2.1.0",
-  "description": "Command-line post-quantum key management for institutions: generate ML-DSA-65 keypairs, rotate keys with an on-chain anchor, sign files and verify signatures, all without writing code.",
+  "version": "2.1.1",
+  "description": "Post-quantum key management from a terminal: recoverable ML-DSA-65 keys, signed key rotation with an optional on-chain anchor, and file signing and verification, offline by default and with no code to write.",
   "keywords": [
     "post-quantum",
     "pqc",
@@ -19,7 +19,14 @@
     "json-canonicalization",
     "jcs",
     "fingerprint",
-    "deterministic-keygen"
+    "deterministic-keygen",
+    "pqc-migration",
+    "crypto-agility",
+    "digital-signature",
+    "attestation",
+    "file-signing",
+    "hkdf",
+    "ml-dsa-65"
   ],
   "license": "Apache-2.0",
   "author": "Shayne Heffernan and John Heffernan",
