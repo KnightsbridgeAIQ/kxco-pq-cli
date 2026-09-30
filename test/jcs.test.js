@@ -50,3 +50,28 @@ test('jcs: empty object and empty array', () => {
   assert.equal(canonicalize({}), '{}')
   assert.equal(canonicalize([]), '[]')
 })
+
+test('jcs: keys sort by UTF-16 code units, integer-like keys included (RFC 8785 section 3.2.3)', () => {
+  assert.equal(canonicalize({ 10: 1, 9: 2 }), '{"10":1,"9":2}')
+  assert.equal(canonicalize({ b: 1, 2: 2, '': 3, '-1': 4 }), '{"":3,"-1":4,"2":2,"b":1}')
+  // The sorting example in RFC 8785 section 3.2.3, with every value a string.
+  const input = {
+    '\u20ac': 'Euro Sign',
+    '\r': 'Carriage Return',
+    '\ufb33': 'Hebrew Letter Dalet With Dagesh',
+    '1': 'One',
+    '\ud83d\ude00': 'Emoji: Grinning Face',
+    '\u0080': 'Control',
+    '\u00f6': 'Latin Small Letter O With Diaeresis',
+  }
+  assert.equal(
+    canonicalize(input),
+    '{"\\r":"Carriage Return","1":"One","\u0080":"Control","\u00f6":"Latin Small Letter O With Diaeresis",' +
+    '"\u20ac":"Euro Sign","\ud83d\ude00":"Emoji: Grinning Face","\ufb33":"Hebrew Letter Dalet With Dagesh"}',
+  )
+})
+
+test('jcs: a "__proto__" member is written like any other key', () => {
+  assert.equal(canonicalize(JSON.parse('{"__proto__":{"a":1},"b":2}')), '{"__proto__":{"a":1},"b":2}')
+  assert.equal(canonicalize([JSON.parse('{"__proto__":null}')]), '[{"__proto__":null}]')
+})

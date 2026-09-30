@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.1.3
+
+Rotation manifests are canonicalised in RFC 8785 key order, integer-like keys
+included, and a `__proto__` member is signed like any other key. Manifests with
+the published fields keep their exact bytes.
+
 ## 2.1.2
 
 Documentation. No source change.
