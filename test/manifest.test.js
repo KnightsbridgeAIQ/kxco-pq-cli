@@ -42,7 +42,8 @@ test('verify fails when a "__proto__" member is added after signing', () => {
     newKid:            NEW_KID,
     newPublicKey:      NEW.publicKey,
   })
-  const text = JSON.stringify(m).replace('{', '{"__proto__":{"newKid":"0000000000000000"},')
+  // The member goes in straight after the opening brace of the signed manifest.
+  const text = '{"__proto__":{"newKid":"0000000000000000"},' + JSON.stringify(m).slice(1)
   const r = verifyRotationManifest(JSON.parse(text), OLD.publicKey)
   assert.equal(r.ok, false)
   assert.equal(r.reason, 'bad_signature')
