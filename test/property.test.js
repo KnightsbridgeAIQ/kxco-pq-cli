@@ -15,7 +15,7 @@
 import { test, after } from 'node:test'
 import assert from 'node:assert/strict'
 import { execFile } from 'node:child_process'
-import { promisify } from 'node:util'
+import { promisify, isDeepStrictEqual } from 'node:util'
 import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -125,15 +125,20 @@ test('attest: sign then verify round-trips any non-empty file, and a tampered pa
   }), PROCESS_RUNS)
 })
 
-// JSON values for the canonicaliser. Keys carry a prefix, as in
-// kxco-post-quantum's own property file, and numbers are integers, which is
-// the subset jcs.js implements.
-const key = fc.string({ maxLength: 12, unit: 'binary' }).map((s) => 'k' + s)
+// JSON values for the canonicaliser. Keys are any text, integer-like names and
+// `__proto__` among them, and numbers are integers, which is the subset jcs.js
+// implements. Objects are built with Object.fromEntries, so every key is an
+// own member, `__proto__` included.
+const key = fc.oneof(
+  { weight: 6, arbitrary: fc.string({ maxLength: 12, unit: 'binary' }) },
+  { weight: 3, arbitrary: fc.nat(1000).map(String) },
+  { weight: 1, arbitrary: fc.constant('__proto__') },
+)
 const { json } = fc.letrec((tie) => ({
   json: fc.oneof({ depthSize: 'small' },
     fc.constant(null), fc.boolean(), fc.integer(), fc.string({ maxLength: 20, unit: 'binary' }),
     fc.array(tie('json'), { maxLength: 4 }),
-    fc.dictionary(key, tie('json'), { maxKeys: 5 }),
+    fc.uniqueArray(fc.tuple(key, tie('json')), { maxLength: 5, selector: ([k]) => k }).map(Object.fromEntries),
   ),
 }))
 
@@ -144,23 +149,54 @@ function reversed(v) {
   return v
 }
 
-function keysSorted(v) {
-  if (Array.isArray(v)) return v.every(keysSorted)
-  if (v && typeof v === 'object') {
-    const keys = Object.keys(v)
-    return keys.every((k, i) => i === 0 || keys[i - 1] < k) && Object.values(v).every(keysSorted)
+// The keys of every object in JSON text, in the order the text gives them.
+// JSON.parse cannot answer this: a JavaScript object lists integer-like keys
+// first, whatever order the text had them in.
+function keyOrders(text) {
+  const orders = []
+  const open = []   // one entry per open object (its key list) or array (null)
+  let expectKey = false
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i]
+    if (ch === '"') {
+      let j = i + 1
+      while (text[j] !== '"') j += text[j] === '\\' ? 2 : 1
+      if (expectKey) open[open.length - 1].push(JSON.parse(text.slice(i, j + 1)))
+      expectKey = false
+      i = j
+    } else if (ch === '{') {
+      const keys = []
+      orders.push(keys)
+      open.push(keys)
+      expectKey = true
+    } else if (ch === '[') {
+      open.push(null)
+    } else if (ch === '}' || ch === ']') {
+      open.pop()
+      expectKey = false
+    } else if (ch === ',') {
+      expectKey = open[open.length - 1] !== null
+    }
   }
-  return true
+  return orders
 }
 
-test('JCS: the canonical form ignores key order, is idempotent, and sorts keys at every depth', () => {
+function keyCount(v) {
+  if (Array.isArray(v)) return v.reduce((n, x) => n + keyCount(x), 0)
+  if (v && typeof v === 'object') return Object.keys(v).length + Object.values(v).reduce((n, x) => n + keyCount(x), 0)
+  return 0
+}
+
+test('JCS: the canonical form ignores key order, is idempotent, keeps every member, and sorts keys at every depth', () => {
   fc.assert(fc.property(json, (value) => {
     const c = canonicalize(value)
     const back = JSON.parse(c)
+    const orders = keyOrders(c)
     return canonicalize(reversed(value)) === c &&
       canonicalize(back) === c &&
-      JSON.stringify(back) === c &&
-      keysSorted(back)
+      isDeepStrictEqual(back, value) &&
+      orders.flat().length === keyCount(value) &&
+      orders.every((keys) => keys.every((k, i) => i === 0 || keys[i - 1] < k))
   }), { numRuns: 500 })
 })
 
@@ -210,36 +246,44 @@ test('rotation manifest: build then verify round-trips, including through JSON, 
 })
 
 test('rotation manifest: any changed or added field is refused', () => {
+  // Every kind of change is tried on every generated manifest.
+  const FIELDS = [
+    'issuer', 'newKid', 'newPublicKey', 'effectiveAt', 'version', 'manifestType',
+    'previousKid', 'bothKids', 'signature.alg', 'signature.value', 'added', 'added __proto__',
+  ]
   const change = fc.record({
-    field: fc.constantFrom(
-      'issuer', 'newKid', 'newPublicKey', 'effectiveAt', 'version', 'manifestType',
-      'previousKid', 'bothKids', 'signature.alg', 'signature.value', 'added',
-    ),
     text: fc.string({ minLength: 1, maxLength: 12 }),
+    name: key.filter((k) => !['version', 'manifestType', 'issuer', 'previousKid', 'newKid', 'newPublicKey', 'effectiveAt', 'signature'].includes(k)),
     at: fc.nat(),
     bit: fc.nat(7),
   })
-  fc.assert(fc.property(issuer, effectiveAt, change, (iss, at, { field, text, at: pos, bit }) => {
-    const m = JSON.parse(JSON.stringify(manifestFor(iss, at)))
+  fc.assert(fc.property(issuer, effectiveAt, change, (iss, at, { text, name, at: pos, bit }) => {
+    const signed = JSON.stringify(manifestFor(iss, at))
     const flip = (h) => {
       const b = Buffer.from(h, 'hex')
       b[pos % b.length] ^= 1 << bit
       return b.toString('hex')
     }
-    switch (field) {
-      case 'issuer': m.issuer += text; break
-      case 'newKid': m.newKid = flip(m.newKid); break
-      case 'newPublicKey': m.newPublicKey = flip(m.newPublicKey); break
-      case 'effectiveAt': m.effectiveAt += text; break
-      case 'version': m.version += text; break
-      case 'manifestType': m.manifestType += text; break
-      case 'previousKid': m.previousKid = flip(m.previousKid); break
-      case 'bothKids': m.previousKid = flip(m.previousKid); m.signature.kid = m.previousKid; break
-      case 'signature.alg': m.signature.alg += text; break
-      case 'signature.value': m.signature.value = flip(m.signature.value); break
-      case 'added': m['k_' + text] = text; break
-    }
-    const r = verifyRotationManifest(m, OLD.publicKey)
-    return r.ok === false && typeof r.reason === 'string'
+    // As JSON.parse would leave it: an own member, even when it is named __proto__.
+    const add = (m, k, value) => Object.defineProperty(m, k, { value, enumerable: true, writable: true, configurable: true })
+    return FIELDS.every((field) => {
+      const m = JSON.parse(signed)
+      switch (field) {
+        case 'issuer': m.issuer += text; break
+        case 'newKid': m.newKid = flip(m.newKid); break
+        case 'newPublicKey': m.newPublicKey = flip(m.newPublicKey); break
+        case 'effectiveAt': m.effectiveAt += text; break
+        case 'version': m.version += text; break
+        case 'manifestType': m.manifestType += text; break
+        case 'previousKid': m.previousKid = flip(m.previousKid); break
+        case 'bothKids': m.previousKid = flip(m.previousKid); m.signature.kid = m.previousKid; break
+        case 'signature.alg': m.signature.alg += text; break
+        case 'signature.value': m.signature.value = flip(m.signature.value); break
+        case 'added': add(m, name, text); break
+        case 'added __proto__': add(m, '__proto__', { newKid: text }); break
+      }
+      const r = verifyRotationManifest(m, OLD.publicKey)
+      return r.ok === false && typeof r.reason === 'string'
+    })
   }), SIGNING_RUNS)
 })

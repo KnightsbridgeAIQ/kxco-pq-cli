@@ -34,6 +34,20 @@ test('verify fails when verifying against the WRONG public key', () => {
   assert.equal(r.reason, 'bad_signature')
 })
 
+test('verify fails when a "__proto__" member is added after signing', () => {
+  const m = buildRotationManifest({
+    issuer:            'example.test',
+    previousKid:       OLD_KID,
+    previousSecretKey: OLD.secretKey,
+    newKid:            NEW_KID,
+    newPublicKey:      NEW.publicKey,
+  })
+  const text = JSON.stringify(m).replace('{', '{"__proto__":{"newKid":"0000000000000000"},')
+  const r = verifyRotationManifest(JSON.parse(text), OLD.publicKey)
+  assert.equal(r.ok, false)
+  assert.equal(r.reason, 'bad_signature')
+})
+
 test('verify fails when manifest is tampered after signing', () => {
   const m = buildRotationManifest({
     issuer:            'example.test',
