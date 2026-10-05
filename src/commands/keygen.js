@@ -1,14 +1,15 @@
 // `kxco-pq keygen` — derive a deterministic ML-DSA-65 keypair from
-// (master, info) and write it to disk as hex files.
+// (master, info) and write it to disk as hex files. `--algorithm ml-dsa-87`
+// derives an ML-DSA-87 keypair instead; ML-DSA-65 stays the default.
 
-import { mlDsa, fingerprint } from 'kxco-post-quantum'
+import { fingerprint } from 'kxco-post-quantum'
 import { writeFileSync, mkdirSync, existsSync } from 'node:fs'
 import { join } from 'node:path'
 
 import { parseFlags } from '../cli.js'
-import { readHexInput } from '../util.js'
+import { readHexInput, readAlgorithmFlag, DSA, DEFAULT_DSA } from '../util.js'
 
-const FLAGS = new Set(['master', 'info', 'out-dir'])
+const FLAGS = new Set(['master', 'info', 'out-dir', 'algorithm'])
 
 export async function keygen(args) {
   const flags = parseFlags(args, FLAGS)
@@ -19,7 +20,8 @@ export async function keygen(args) {
   const master = readHexInput(flags.master, 'master', { secret: true })
   if (master.length !== 32) throw new Error(`keygen: --master must decode to 32 bytes (got ${master.length})`)
 
-  const kp  = mlDsa.keypairFromMaster(master, flags.info)
+  const algorithm = readAlgorithmFlag(flags.algorithm, DEFAULT_DSA, 'keygen')
+  const kp  = DSA[algorithm].module.keypairFromMaster(master, flags.info)
   const kid = fingerprint(kp.publicKey)
 
   const dir = flags['out-dir']
@@ -33,6 +35,7 @@ export async function keygen(args) {
   writeFileSync(join(dir, 'kid.txt'),        kid + '\n',       { encoding: 'utf-8' })
 
   process.stdout.write(`kxco-pq keygen: wrote keypair to ${dir}\n`)
+  process.stdout.write(`  algorithm:   ${algorithm}\n`)
   process.stdout.write(`  kid:         ${kid}\n`)
   process.stdout.write(`  publicKey:   ${publicHex.length} hex chars (${kp.publicKey.length} bytes)\n`)
   process.stdout.write(`  secretKey:   ${secretHex.length} hex chars (${kp.secretKey.length} bytes) — chmod 600 advised\n`)
