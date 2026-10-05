@@ -12,8 +12,8 @@
 // Without a defined canonicalization, key order, whitespace, and number format
 // drift across languages and signatures stop verifying.
 
-import { mlDsa } from 'kxco-post-quantum'
 import { canonicalize } from './jcs.js'
+import { DSA, dsaForPublicKey, dsaForSecretKey } from './util.js'
 
 const MANIFEST_VERSION = '1.0'
 const MANIFEST_TYPE    = 'rotation'
@@ -22,9 +22,11 @@ const MANIFEST_TYPE    = 'rotation'
  * @typedef {Object} BuildRotationManifestOpts
  * @property {string} issuer        — publisher domain, e.g. "chain.kxco.ai"
  * @property {string} previousKid   — 16-hex kid of the outgoing key
- * @property {Uint8Array|Buffer} previousSecretKey  — outgoing ML-DSA-65 secret key (4032 bytes)
+ * @property {Uint8Array|Buffer} previousSecretKey  outgoing ML-DSA-65 (4032-byte) or ML-DSA-87
+ *                                                   (4896-byte) secret key; its set is the manifest's alg
  * @property {string} newKid        — 16-hex kid of the incoming key
- * @property {Uint8Array|Buffer} newPublicKey       — incoming ML-DSA-65 public key (1952 bytes)
+ * @property {Uint8Array|Buffer} newPublicKey       incoming ML-DSA-65 (1952-byte) or ML-DSA-87
+ *                                                   (2592-byte) public key
  * @property {string} [effectiveAt] — ISO 8601; default = now
  */
 
@@ -43,6 +45,13 @@ export function buildRotationManifest(opts) {
   if (!previousSecretKey)                              throw new TypeError('previousSecretKey is required')
   if (!newPublicKey)                                   throw new TypeError('newPublicKey is required')
 
+  // The outgoing key decides the signature algorithm, and the algorithm is
+  // recorded in signature.alg, which is inside the signed bytes.
+  const alg = dsaForSecretKey(previousSecretKey)
+  if (alg === null) {
+    throw new TypeError('previousSecretKey must be an ML-DSA-65 (4032-byte) or ML-DSA-87 (4896-byte) secret key')
+  }
+
   const effectiveAt = opts.effectiveAt || new Date().toISOString()
   const newPublicKeyHex = Buffer.isBuffer(newPublicKey) || newPublicKey instanceof Uint8Array
     ? Buffer.from(newPublicKey).toString('hex')
@@ -58,7 +67,7 @@ export function buildRotationManifest(opts) {
     newPublicKey: newPublicKeyHex,
     effectiveAt,
     signature: {
-      alg:   'ml-dsa-65',
+      alg,
       kid:   previousKid,
       value: '',
     },
@@ -68,7 +77,7 @@ export function buildRotationManifest(opts) {
   const canonicalBytes = Buffer.from(canonicalize(unsigned), 'utf-8')
 
   // 3. Sign with the outgoing secret key. mlDsa.sign() returns hex directly.
-  const sigHex = mlDsa.sign(previousSecretKey, canonicalBytes)
+  const sigHex = DSA[alg].module.sign(previousSecretKey, canonicalBytes)
 
   // 4. Populate signature.value
   return { ...unsigned, signature: { ...unsigned.signature, value: sigHex } }
@@ -87,7 +96,7 @@ export function verifyRotationManifest(manifest, previousPublicKey) {
   if (!manifest || typeof manifest !== 'object')      return { ok: false, reason: 'malformed' }
   if (manifest.version !== MANIFEST_VERSION)          return { ok: false, reason: 'unsupported_version' }
   if (manifest.manifestType !== MANIFEST_TYPE)        return { ok: false, reason: 'wrong_type' }
-  if (!manifest.signature || manifest.signature.alg !== 'ml-dsa-65') return { ok: false, reason: 'wrong_alg' }
+  if (!manifest.signature || !Object.hasOwn(DSA, manifest.signature.alg)) return { ok: false, reason: 'wrong_alg' }
   if (typeof manifest.signature.value !== 'string' || manifest.signature.value.length === 0) {
     return { ok: false, reason: 'no_signature' }
   }
@@ -97,11 +106,19 @@ export function verifyRotationManifest(manifest, previousPublicKey) {
     ? Buffer.from(previousPublicKey)
     : Buffer.from(String(previousPublicKey), 'hex')
 
+  // The key decides the algorithm. A key of neither set verifies nothing, as
+  // before; a manifest whose signature.alg names the other set from the key is
+  // refused rather than tried. A manifest with no signature.alg never verified
+  // and still does not.
+  const keyAlg = dsaForPublicKey(pubBytes)
+  if (keyAlg === null) return { ok: false, reason: 'bad_signature' }
+  if (keyAlg !== manifest.signature.alg) return { ok: false, reason: 'wrong_alg' }
+
   // Reconstruct the canonical bytes by emptying out signature.value
   const unsigned = { ...manifest, signature: { ...manifest.signature, value: '' } }
   const canonicalBytes = Buffer.from(canonicalize(unsigned), 'utf-8')
 
   // mlDsa.verify() takes a hex-encoded signature string directly.
-  const ok = mlDsa.verify(pubBytes, canonicalBytes, manifest.signature.value)
+  const ok = DSA[keyAlg].module.verify(pubBytes, canonicalBytes, manifest.signature.value)
   return ok ? { ok: true } : { ok: false, reason: 'bad_signature' }
 }

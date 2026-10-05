@@ -123,6 +123,8 @@ Outputs:
 
 The keypair is deterministic: same `--master` + same `--info` always produces the same kid. Restore from master; never lose a key.
 
+`--algorithm ml-dsa-87` derives an ML-DSA-87 keypair instead (4896-byte secret key, 2592-byte public key). ML-DSA-65 stays the default.
+
 ### `kxco-pq fingerprint`
 
 Compute the kid for a public key without spinning up any application code.
@@ -131,7 +133,7 @@ Compute the kid for a public key without spinning up any application code.
 kxco-pq fingerprint @./keys/public-key.hex
 ```
 
-Accepts a hex string directly or a `@file` reference. Prints the 16-char hex kid.
+Accepts a hex string directly or a `@file` reference, for an ML-DSA-65 (1952-byte) or ML-DSA-87 (2592-byte) public key. Prints the 16-char hex kid.
 
 ### `kxco-pq rotate`
 
@@ -150,6 +152,16 @@ kxco-pq rotate \
 `--old-kid` is the kid of the outgoing key, as written to `keys/kid.txt`, and
 `new-master.hex` is a fresh 32-byte master made the same way as the first.
 `--issuer` is the domain that publishes your keys.
+
+The outgoing key's secret decides its parameter set (4032 bytes ML-DSA-65, 4896
+bytes ML-DSA-87), and the manifest's `signature.alg`, which is inside the signed
+bytes, names it. The new key keeps the same set unless `--algorithm ml-dsa-65`
+or `--algorithm ml-dsa-87` names one, so `--algorithm ml-dsa-87` on an ML-DSA-65
+key rotates to ML-DSA-87 with the handoff still signed by the old key. The
+well-known document's `algorithm` names the new key's set; where a rotation
+changes it, the retiring key's entry carries its own `algorithm`. A manifest is
+checked under the set its key belongs to, and one whose `signature.alg` names
+the other set is refused.
 
 Outputs (in `--out-dir`):
 - `secret-key.hex`, `public-key.hex`, `kid.txt`: the new keypair

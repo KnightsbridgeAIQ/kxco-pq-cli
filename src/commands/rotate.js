@@ -12,6 +12,9 @@
 //   --out-dir <dir>            where to write the four output files
 //   --previous-active-from <ISO8601>   optional; when the OLD kid first went active.
 //                                      Recorded in keys[] history. Defaults to "unknown".
+//   --algorithm ml-dsa-65|ml-dsa-87    optional; the NEW key's parameter set. Defaults
+//                                      to the old key's, which its secret key's length
+//                                      decides (4032 bytes ML-DSA-65, 4896 ML-DSA-87).
 //
 // Outputs (all in --out-dir):
 //   secret-key.hex     NEW key's secret
@@ -20,17 +23,17 @@
 //   manifest.json      RFC 8785 JCS canonical, signed by OLD kid
 //   well-known.json    Updated /.well-known/kxco-pq-pubkey doc with both keys
 
-import { mlDsa, fingerprint } from 'kxco-post-quantum'
+import { fingerprint } from 'kxco-post-quantum'
 import { writeFileSync, readFileSync, mkdirSync, existsSync } from 'node:fs'
 import { join } from 'node:path'
 
 import { parseFlags } from '../cli.js'
-import { readHexInput } from '../util.js'
+import { readHexInput, readAlgorithmFlag, dsaForSecretKey, DSA } from '../util.js'
 import { buildRotationManifest } from '../manifest.js'
 
 const FLAGS = new Set([
   'old-secret', 'old-kid', 'new-master', 'info', 'issuer', 'out-dir',
-  'previous-active-from', 'relay', 'identity-file',
+  'previous-active-from', 'relay', 'identity-file', 'algorithm',
 ])
 
 export async function rotate(args) {
@@ -41,8 +44,11 @@ export async function rotate(args) {
 
   // ── Load OLD key material ─────────────────────────────────────────────
   const oldSecret = readHexInput(flags['old-secret'], 'old secret', { secret: true })
-  if (oldSecret.length !== 4032) {
-    throw new Error(`rotate: --old-secret must decode to 4032 bytes (ML-DSA-65 secret key; got ${oldSecret.length})`)
+  const oldAlg = dsaForSecretKey(oldSecret)
+  if (oldAlg === null) {
+    throw new Error(
+      `rotate: --old-secret must decode to 4032 bytes (ML-DSA-65 secret key) or 4896 bytes (ML-DSA-87 secret key; got ${oldSecret.length})`,
+    )
   }
   const oldKid = flags['old-kid'].trim().toLowerCase()
   if (!/^[0-9a-f]{16}$/.test(oldKid)) {
@@ -71,7 +77,9 @@ export async function rotate(args) {
   if (newMaster.length !== 32) {
     throw new Error(`rotate: --new-master must decode to 32 bytes (got ${newMaster.length})`)
   }
-  const newKp  = mlDsa.keypairFromMaster(newMaster, flags.info)
+  // The new key keeps the old key's parameter set unless --algorithm names one.
+  const newAlg = readAlgorithmFlag(flags.algorithm, oldAlg, 'rotate')
+  const newKp  = DSA[newAlg].module.keypairFromMaster(newMaster, flags.info)
   const newKid = fingerprint(newKp.publicKey)
   if (newKid === oldKid) {
     throw new Error(`rotate: new kid equals old kid — refusing to "rotate" to the same key. Pick a different --new-master or --info.`)
@@ -93,7 +101,7 @@ export async function rotate(args) {
   // ── Build the well-known doc ──────────────────────────────────────────
   const wellKnown = {
     version:   '1.1',
-    algorithm: 'ml-dsa-65',
+    algorithm: newAlg,
     issuer:    flags.issuer,
     kid:       newKid,
     publicKey: newPublicHex,
@@ -115,6 +123,9 @@ export async function rotate(args) {
         status:        'retiring',
         activeUntil:   effectiveAt,
         supersededBy:  newKid,
+        // The top-level algorithm describes the active key. Where a rotation
+        // changes the parameter set, the retiring key records its own.
+        ...(oldAlg !== newAlg ? { algorithm: oldAlg } : {}),
         ...(flags['previous-active-from'] ? { activeFrom: flags['previous-active-from'] } : {}),
       },
     ],
@@ -133,7 +144,7 @@ export async function rotate(args) {
   process.stdout.write(`  previous kid:    ${oldKid}  (retiring)\n`)
   process.stdout.write(`  new kid:         ${newKid}  (active)\n`)
   process.stdout.write(`  effective at:    ${effectiveAt}\n`)
-  process.stdout.write(`  manifest signed by previous kid: yes (ml-dsa-65)\n`)
+  process.stdout.write(`  manifest signed by previous kid: yes (${oldAlg})\n`)
 
   // ── Optional on-chain relay anchor ────────────────────────────────────
   if (flags.relay) {
@@ -149,11 +160,17 @@ export async function rotate(args) {
     }
     const { KxcoChain } = await import('kxco-pq-chain')
     const secretBytes = new Uint8Array(Buffer.from(identity.secretKey, 'hex'))
+    // The identity's secret key decides which set signs the intent.
+    const identityAlg = dsaForSecretKey(secretBytes)
+    if (identityAlg === null) {
+      throw new Error('rotate: --identity-file secretKey must be an ML-DSA-65 (4032-byte) or ML-DSA-87 (4896-byte) secret key')
+    }
     const chain = new KxcoChain({
       relay: flags.relay,
       identity: {
         kid: identity.kid,
-        sign: async (message) => Buffer.from(mlDsa.sign(secretBytes, message), 'hex'),
+        sign: async (message) => Buffer.from(DSA[identityAlg].module.sign(secretBytes, message), 'hex'),
+        ...(identityAlg === 'ml-dsa-87' ? { alg: 'ML-DSA-87' } : {}),
       },
     })
     const chainResult = await chain.rotateKey({ newKid, newPublicKeyHex: newPublicHex })

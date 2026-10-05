@@ -1,6 +1,46 @@
 // Shared helpers for command modules.
 
 import { readFileSync } from 'node:fs'
+import { mlDsa, mlDsa87 } from 'kxco-post-quantum'
+
+/**
+ * The two ML-DSA parameter sets this CLI handles. The key decides which one is
+ * in play: a key's length names its set, and the set picks the wrapper module.
+ * ML-DSA-65 is the default wherever a new key is made without one being asked
+ * for.
+ */
+export const DSA = Object.freeze({
+  'ml-dsa-65': Object.freeze({ module: mlDsa,   publicKeyBytes: 1952, secretKeyBytes: 4032, signatureBytes: 3309 }),
+  'ml-dsa-87': Object.freeze({ module: mlDsa87, publicKeyBytes: 2592, secretKeyBytes: 4896, signatureBytes: 4627 }),
+})
+export const DEFAULT_DSA = 'ml-dsa-65'
+
+/** The set a public key of this length belongs to, or null for neither. */
+export function dsaForPublicKey(bytes) {
+  for (const [name, set] of Object.entries(DSA)) if (bytes.length === set.publicKeyBytes) return name
+  return null
+}
+
+/** The set a secret key of this length belongs to, or null for neither. */
+export function dsaForSecretKey(bytes) {
+  for (const [name, set] of Object.entries(DSA)) if (bytes.length === set.secretKeyBytes) return name
+  return null
+}
+
+/**
+ * Read an `--algorithm` flag: one of the DSA names, or `fallback` when absent.
+ *
+ * @param {string|undefined} value
+ * @param {string} fallback
+ * @param {string} command  only for the error message
+ */
+export function readAlgorithmFlag(value, fallback, command) {
+  const name = value ?? fallback
+  if (!Object.hasOwn(DSA, name)) {
+    throw new Error(`${command}: --algorithm must be ml-dsa-65 or ml-dsa-87 (got ${name})`)
+  }
+  return name
+}
 
 /**
  * Resolve a `--flag <value>` that accepts either a raw hex string or `@/path/to/file`.

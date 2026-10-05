@@ -1,5 +1,24 @@
 # Changelog
 
+## Unreleased
+
+**ML-DSA-87 keys throughout.** `keygen --algorithm ml-dsa-87` derives an
+ML-DSA-87 keypair; ML-DSA-65 stays the default. `fingerprint` accepts an
+ML-DSA-87 public key. `rotate` reads the outgoing key's set from its secret key
+and keeps that set for the new key unless `--algorithm` names one. The manifest
+is signed with the outgoing key, and its set is recorded in `signature.alg`,
+inside the RFC 8785 signed bytes. The well-known document's `algorithm` names the
+new key's set, and the retiring key's entry carries its own when a rotation
+changes it. With `--relay`, the identity's secret key decides the set its intent
+is signed with.
+
+The key decides the algorithm on verification too: `verifyRotationManifest`
+verifies under the set the outgoing public key belongs to and refuses a manifest
+whose `signature.alg` names the other set (`wrong_alg`). Manifests signed by
+earlier versions verify unchanged, and a test verifies one built by 2.1.3.
+
+The `kxco-post-quantum` peer and development floor is now ^1.6.0.
+
 ## 2.1.3
 
 Rotation manifests are canonicalised in RFC 8785 key order, integer-like keys
