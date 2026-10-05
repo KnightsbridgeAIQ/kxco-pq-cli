@@ -1,7 +1,6 @@
 # Changelog
 
-## Unreleased
-
+## 2.2.0
 **ML-DSA-87 keys throughout.** `keygen --algorithm ml-dsa-87` derives an
 ML-DSA-87 keypair; ML-DSA-65 stays the default. `fingerprint` accepts an
 ML-DSA-87 public key. `rotate` reads the outgoing key's set from its secret key
