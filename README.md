@@ -1,6 +1,6 @@
 # kxco-pq-cli
 
-**Post-quantum key management from a terminal: deterministic ML-DSA-65 keys, signed rotation and verifiable attestations, with no code to write.**
+**Post-quantum key management from a terminal: deterministic ML-DSA-87 and ML-DSA-65 keys, signed rotation and verifiable attestations, with no code to write.**
 
 [![npm](https://img.shields.io/npm/v/kxco-pq-cli?label=npm&color=b0964f)](https://www.npmjs.com/package/kxco-pq-cli)
 [![downloads](https://img.shields.io/npm/dm/kxco-pq-cli?label=downloads&color=b0964f)](https://www.npmjs.com/package/kxco-pq-cli)
@@ -10,7 +10,7 @@
 [![license](https://img.shields.io/badge/license-Apache--2.0-blue)](./LICENSE)
 [![node](https://img.shields.io/node/v/kxco-pq-cli.svg)](https://nodejs.org)
 
-CLI for KXCO post-quantum institution key management. Generates ML-DSA-65 keypairs, rotates institution keys with optional on-chain anchoring, signs files and verifies signatures, all without writing any code.
+CLI for KXCO post-quantum institution key management. Generates ML-DSA-87 and ML-DSA-65 keypairs, rotates institution keys with optional on-chain anchoring, signs files and verifies signatures, all without writing any code.
 
 - **Keys you can always recover.** A keypair derives from a 32-byte master and an info label through HKDF, so the same inputs always give the same kid. A key regenerates on a clean machine without a backup of the key itself.
 - **Rotation in one command.** `rotate` derives the new key, signs a rotation manifest with the outgoing key so existing receivers can verify the handoff, and writes the updated well-known document. Add `--relay` and it anchors the rotation on chain and prints the transaction hash and block number.
@@ -264,7 +264,7 @@ above it.
 
 ## Security
 
-**ML-DSA-65** (NIST FIPS 204) via [`kxco-post-quantum`](https://www.npmjs.com/package/kxco-post-quantum), running on the OpenSSL 3.5 primitives where the runtime provides them. No custom cryptography. Private key bytes are never echoed to stdout.
+**ML-DSA-87** and **ML-DSA-65** (NIST FIPS 204) via [`kxco-post-quantum`](https://www.npmjs.com/package/kxco-post-quantum), running on the OpenSSL 3.5 primitives where the runtime provides them. No custom cryptography. Private key bytes are never echoed to stdout.
 
 Evidenced, and reproducible on your own machine:
 

@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.2.1
+
+Documentation. No source change.
+
+The package description, the opening of the README and the keywords now say
+what 2.2.0 already does: `keygen` and `rotate` make ML-DSA-87 keys as well as
+ML-DSA-65 ones. `ml-dsa-87` joins the keywords.
+
 ## 2.2.0
 **ML-DSA-87 keys throughout.** `keygen --algorithm ml-dsa-87` derives an
 ML-DSA-87 keypair; ML-DSA-65 stays the default. `fingerprint` accepts an
