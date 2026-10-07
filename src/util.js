@@ -6,14 +6,16 @@ import { mlDsa, mlDsa87 } from 'kxco-post-quantum'
 /**
  * The two ML-DSA parameter sets this CLI handles. The key decides which one is
  * in play: a key's length names its set, and the set picks the wrapper module.
- * ML-DSA-65 is the default wherever a new key is made without one being asked
- * for.
+ * ML-DSA-87 is the default where `keygen` makes a new key without one being
+ * asked for. An existing key always keeps its own set: `rotate` keeps the old
+ * key's set for the new key unless `--algorithm` names one, and signing uses
+ * the set the secret key belongs to.
  */
 export const DSA = Object.freeze({
   'ml-dsa-65': Object.freeze({ module: mlDsa,   publicKeyBytes: 1952, secretKeyBytes: 4032, signatureBytes: 3309 }),
   'ml-dsa-87': Object.freeze({ module: mlDsa87, publicKeyBytes: 2592, secretKeyBytes: 4896, signatureBytes: 4627 }),
 })
-export const DEFAULT_DSA = 'ml-dsa-65'
+export const DEFAULT_DSA = 'ml-dsa-87'
 
 /** The set a public key of this length belongs to, or null for neither. */
 export function dsaForPublicKey(bytes) {

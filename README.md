@@ -95,7 +95,7 @@ between free and paid is set out in
 
 ### `kxco-pq keygen`
 
-Generate a deterministic ML-DSA-65 keypair from a 32-byte master secret and an info label. Writes hex files to `--out-dir`.
+Generate a deterministic ML-DSA-87 keypair from a 32-byte master secret and an info label. Writes hex files to `--out-dir`.
 
 ```bash
 kxco-pq keygen \
@@ -117,13 +117,13 @@ shell history and was readable from the process table while this ran. Pass
 ```
 
 Outputs:
-- `keys/secret-key.hex`: 4032-byte secret key, hex-encoded. Store in a secrets manager, `chmod 600`. Never commit.
-- `keys/public-key.hex`: 1952-byte public key, hex-encoded.
+- `keys/secret-key.hex`: 4896-byte ML-DSA-87 secret key, hex-encoded. Store in a secrets manager, `chmod 600`. Never commit.
+- `keys/public-key.hex`: 2592-byte ML-DSA-87 public key, hex-encoded.
 - `keys/kid.txt`: 16-character hex fingerprint. This is what receivers pin.
 
 The keypair is deterministic: same `--master` + same `--info` always produces the same kid. Restore from master; never lose a key.
 
-`--algorithm ml-dsa-87` derives an ML-DSA-87 keypair instead (4896-byte secret key, 2592-byte public key). ML-DSA-65 stays the default.
+ML-DSA-87 is the default from 2.3.0. `--algorithm ml-dsa-65` derives an ML-DSA-65 keypair instead (4032-byte secret key, 1952-byte public key), as `keygen` did by default before 2.3.0. Key files already on disk keep working with every command, because a key's length decides its set.
 
 ### `kxco-pq fingerprint`
 
@@ -133,7 +133,7 @@ Compute the kid for a public key without spinning up any application code.
 kxco-pq fingerprint @./keys/public-key.hex
 ```
 
-Accepts a hex string directly or a `@file` reference, for an ML-DSA-65 (1952-byte) or ML-DSA-87 (2592-byte) public key. Prints the 16-char hex kid.
+Accepts a hex string directly or a `@file` reference, for an ML-DSA-87 (2592-byte) or ML-DSA-65 (1952-byte) public key. Prints the 16-char hex kid.
 
 ### `kxco-pq rotate`
 
@@ -153,10 +153,10 @@ kxco-pq rotate \
 `new-master.hex` is a fresh 32-byte master made the same way as the first.
 `--issuer` is the domain that publishes your keys.
 
-The outgoing key's secret decides its parameter set (4032 bytes ML-DSA-65, 4896
-bytes ML-DSA-87), and the manifest's `signature.alg`, which is inside the signed
-bytes, names it. The new key keeps the same set unless `--algorithm ml-dsa-65`
-or `--algorithm ml-dsa-87` names one, so `--algorithm ml-dsa-87` on an ML-DSA-65
+The outgoing key's secret decides its parameter set (4896 bytes ML-DSA-87, 4032
+bytes ML-DSA-65), and the manifest's `signature.alg`, which is inside the signed
+bytes, names it. The new key keeps the same set unless `--algorithm ml-dsa-87`
+or `--algorithm ml-dsa-65` names one, so `--algorithm ml-dsa-87` on an ML-DSA-65
 key rotates to ML-DSA-87 with the handoff still signed by the old key. The
 well-known document's `algorithm` names the new key's set; where a rotation
 changes it, the retiring key's entry carries its own `algorithm`. A manifest is
@@ -176,7 +176,7 @@ After running:
 
 ### `kxco-pq attest sign`
 
-Sign any file with ML-DSA-65 and emit a self-contained JSON attestation envelope.
+Sign any file and emit a self-contained JSON attestation envelope. The secret key decides the set: ML-DSA-87 for a key `keygen` makes by default, and ML-DSA-65 for an ML-DSA-65 key.
 
 ```bash
 kxco-pq attest sign \
@@ -186,7 +186,7 @@ kxco-pq attest sign \
   --out        payload.attestation.json
 ```
 
-The output is a `kxco-pq-attest` version 2 envelope: `kxco-attest` (the format version), `payload` (base64url), `alg`, `kid`, `sig` (base64url ML-DSA-65), `issuedAt` and `verifyModeHint`. Any counterparty can verify it without trust delegation.
+The output is a `kxco-pq-attest` version 2 envelope: `kxco-attest` (the format version), `payload` (base64url), `alg` (`ML-DSA-87` or `ML-DSA-65`), `kid`, `sig` (base64url, in the set `alg` names), `issuedAt` and `verifyModeHint`. Any counterparty can verify it without trust delegation.
 
 ### `kxco-pq attest verify`
 

@@ -1,6 +1,6 @@
-// `kxco-pq keygen` — derive a deterministic ML-DSA-65 keypair from
-// (master, info) and write it to disk as hex files. `--algorithm ml-dsa-87`
-// derives an ML-DSA-87 keypair instead; ML-DSA-65 stays the default.
+// `kxco-pq keygen`: derive a deterministic ML-DSA-87 keypair from
+// (master, info) and write it to disk as hex files. `--algorithm ml-dsa-65`
+// derives an ML-DSA-65 keypair instead, the default before 2.3.0.
 
 import { fingerprint } from 'kxco-post-quantum'
 import { writeFileSync, mkdirSync, existsSync } from 'node:fs'

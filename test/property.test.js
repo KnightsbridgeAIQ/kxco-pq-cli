@@ -21,7 +21,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import fc from 'fast-check'
-import { mlDsa, fingerprint } from 'kxco-post-quantum'
+import { mlDsa, mlDsa87, fingerprint } from 'kxco-post-quantum'
 
 import { canonicalize } from '../src/jcs.js'
 import { buildRotationManifest, verifyRotationManifest } from '../src/manifest.js'
@@ -83,7 +83,8 @@ test('keygen: the same master and info always write the same keypair, the one kx
     for (const file of ['secret-key.hex', 'public-key.hex', 'kid.txt']) {
       assert.equal(read(join(dir, 'a'), file), read(join(dir, 'b'), file), `${file} differs between two runs`)
     }
-    const expected = mlDsa.keypairFromMaster(master, label)
+    // keygen makes an ML-DSA-87 key unless --algorithm names another set.
+    const expected = mlDsa87.keypairFromMaster(master, label)
     assert.equal(read(join(dir, 'a'), 'secret-key.hex'), hex(expected.secretKey) + '\n')
     assert.equal(read(join(dir, 'a'), 'public-key.hex'), hex(expected.publicKey) + '\n')
     assert.equal(read(join(dir, 'a'), 'kid.txt'), fingerprint(expected.publicKey) + '\n')
