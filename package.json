@@ -1,11 +1,12 @@
 {
   "name": "kxco-pq-cli",
-  "version": "2.2.0",
-  "description": "Post-quantum key management from a terminal: recoverable ML-DSA-65 keys, signed key rotation with an optional on-chain anchor, and file signing and verification, offline by default and with no code to write.",
+  "version": "2.2.1",
+  "description": "Post-quantum key management from a terminal: recoverable ML-DSA-87 and ML-DSA-65 keys, signed key rotation with an optional on-chain anchor, and file signing and verification, offline by default and with no code to write.",
   "keywords": [
     "post-quantum",
     "pqc",
     "ml-dsa",
+    "ml-dsa-87",
     "nist",
     "fips-204",
     "cli",
