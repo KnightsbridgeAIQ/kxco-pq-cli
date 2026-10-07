@@ -12,9 +12,11 @@
 //   --out-dir <dir>            where to write the four output files
 //   --previous-active-from <ISO8601>   optional; when the OLD kid first went active.
 //                                      Recorded in keys[] history. Defaults to "unknown".
-//   --algorithm ml-dsa-65|ml-dsa-87    optional; the NEW key's parameter set. Defaults
+//   --algorithm ml-dsa-87|ml-dsa-65    optional; the NEW key's parameter set. Defaults
 //                                      to the old key's, which its secret key's length
-//                                      decides (4032 bytes ML-DSA-65, 4896 ML-DSA-87).
+//                                      decides (4896 bytes ML-DSA-87, 4032 ML-DSA-65).
+//                                      keygen's ML-DSA-87 default does not apply here,
+//                                      so an existing key's deployment keeps its set.
 //
 // Outputs (all in --out-dir):
 //   secret-key.hex     NEW key's secret

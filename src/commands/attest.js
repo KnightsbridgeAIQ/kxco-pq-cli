@@ -1,4 +1,5 @@
-// `kxco-pq attest sign`,   sign a file with ML-DSA-65, emit JSON attestation
+// `kxco-pq attest sign`,   sign a file with the secret key's ML-DSA set
+//                          (ML-DSA-87 or ML-DSA-65), emit JSON attestation
 // `kxco-pq attest verify`, verify a JSON attestation against a public key
 
 import { readFileSync, writeFileSync } from 'node:fs'

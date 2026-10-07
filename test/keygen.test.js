@@ -3,7 +3,7 @@ import assert      from 'node:assert/strict'
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { mlDsa, fingerprint } from 'kxco-post-quantum'
+import { mlDsa87, fingerprint } from 'kxco-post-quantum'
 
 import { keygen } from '../src/commands/keygen.js'
 
@@ -31,8 +31,9 @@ test('keygen: produces secret/public/kid files that match deterministic derivati
     const publicHex = readFileSync(join(dir, 'public-key.hex'), 'utf-8').trim()
     const kid       = readFileSync(join(dir, 'kid.txt'),        'utf-8').trim()
 
-    // Re-derive in this test and confirm bytes match
-    const kp = mlDsa.keypairFromMaster(Buffer.from(masterHex, 'hex'), 'kxco-keygen-test-v1')
+    // Re-derive in this test and confirm bytes match. keygen makes an
+    // ML-DSA-87 key unless --algorithm names another set.
+    const kp = mlDsa87.keypairFromMaster(Buffer.from(masterHex, 'hex'), 'kxco-keygen-test-v1')
     assert.equal(Buffer.from(kp.secretKey).toString('hex'), secretHex)
     assert.equal(Buffer.from(kp.publicKey).toString('hex'), publicHex)
     assert.equal(fingerprint(kp.publicKey), kid)

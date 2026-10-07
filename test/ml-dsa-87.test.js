@@ -1,9 +1,10 @@
-// ML-DSA-87 through every command, with the key deciding the parameter set,
-// cross-set presentation refused, and ML-DSA-65 behaving exactly as before.
+// ML-DSA-87 through every command, with keygen making ML-DSA-87 by default,
+// the key deciding the parameter set everywhere else, cross-set presentation
+// refused, and ML-DSA-65 behaving exactly as before.
 
 import { test }   from 'node:test'
 import assert      from 'node:assert/strict'
-import { mkdtempSync, readFileSync, writeFileSync, rmSync } from 'node:fs'
+import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { mlDsa, mlDsa87, fingerprint as fp } from 'kxco-post-quantum'
@@ -11,6 +12,7 @@ import { mlDsa, mlDsa87, fingerprint as fp } from 'kxco-post-quantum'
 import { keygen } from '../src/commands/keygen.js'
 import { fingerprint } from '../src/commands/fingerprint.js'
 import { rotate } from '../src/commands/rotate.js'
+import { attest } from '../src/commands/attest.js'
 import { buildRotationManifest, verifyRotationManifest } from '../src/manifest.js'
 
 const LEGACY = JSON.parse(readFileSync(new URL('./fixtures/legacy-65-manifest.json', import.meta.url), 'utf-8'))
@@ -47,10 +49,76 @@ test('keygen --algorithm ml-dsa-87: writes the ML-DSA-87 keypair the wrapper der
   assert.equal(readFileSync(join(dir, 'kid.txt'), 'utf-8').trim(), fp(want.publicKey))
 }))
 
-test('keygen: ML-DSA-65 stays the default', () => withDir(async (dir) => {
-  const { out } = await captureStdout(() => keygen(['--master', '00'.repeat(32), '--info', 'x', '--out-dir', dir]))
-  assert.match(out, /algorithm: {3}ml-dsa-65/)
-  assert.equal(readFileSync(join(dir, 'public-key.hex'), 'utf-8').trim().length, 1952 * 2)
+// keygen into dir, then attest sign a file with the keys it wrote and verify
+// the envelope against the public key it wrote.
+async function keygenThenAttest(dir, extra = []) {
+  const { out } = await captureStdout(() => keygen(['--master', '00'.repeat(32), '--info', 'x', '--out-dir', dir, ...extra]))
+  const file = join(dir, 'payload.txt')
+  writeFileSync(file, 'signed with the default key')
+  const envPath = join(dir, 'payload.attestation.json')
+  const signed = await captureStdout(() => attest([
+    'sign', '--secret-key', '@' + join(dir, 'secret-key.hex'), '--public-key', '@' + join(dir, 'public-key.hex'),
+    '--file', file, '--out', envPath,
+  ]))
+  assert.equal(signed.rc, 0)
+  const verified = await captureStdout(() => attest([
+    'verify', '--public-key', '@' + join(dir, 'public-key.hex'), '--attestation', envPath,
+  ]))
+  return {
+    out,
+    publicHex: readFileSync(join(dir, 'public-key.hex'), 'utf-8').trim(),
+    secretHex: readFileSync(join(dir, 'secret-key.hex'), 'utf-8').trim(),
+    envelope: JSON.parse(readFileSync(envPath, 'utf-8')),
+    verified,
+  }
+}
+
+test('keygen: ML-DSA-87 is the default, sized as FIPS 204 sets it, and attest sign signs with it', () => withDir(async (dir) => {
+  const r = await keygenThenAttest(dir)
+  assert.match(r.out, /algorithm: {3}ml-dsa-87/)
+  assert.equal(r.publicHex.length, 2592 * 2)
+  assert.equal(r.secretHex.length, 4896 * 2)
+  assert.equal(r.publicHex, Buffer.from(mlDsa87.keypairFromMaster(Buffer.alloc(32), 'x').publicKey).toString('hex'))
+  assert.equal(r.envelope.alg, 'ML-DSA-87')
+  assert.equal(Buffer.from(r.envelope.sig, 'base64url').length, 4627)
+  assert.equal(r.verified.rc, 0)
+  assert.match(r.verified.out, /VALID/)
+}))
+
+test('keygen --algorithm ml-dsa-65: the old default on request, and attest sign signs as ML-DSA-65', () => withDir(async (dir) => {
+  const r = await keygenThenAttest(dir, ['--algorithm', 'ml-dsa-65'])
+  assert.match(r.out, /algorithm: {3}ml-dsa-65/)
+  assert.equal(r.publicHex.length, 1952 * 2)
+  assert.equal(r.secretHex.length, 4032 * 2)
+  assert.equal(r.publicHex, Buffer.from(mlDsa.keypairFromMaster(Buffer.alloc(32), 'x').publicKey).toString('hex'))
+  assert.equal(r.envelope.alg, 'ML-DSA-65')
+  assert.equal(Buffer.from(r.envelope.sig, 'base64url').length, 3309)
+  assert.equal(r.verified.rc, 0)
+}))
+
+test('an ML-DSA-65 key already on disk still signs, verifies and rotates as ML-DSA-65', () => withDir(async (dir) => {
+  // The files keygen wrote before 2.3.0, when ML-DSA-65 was the default.
+  writeFileSync(join(dir, 'secret-key.hex'), Buffer.from(O65.secretKey).toString('hex') + '\n')
+  writeFileSync(join(dir, 'public-key.hex'), Buffer.from(O65.publicKey).toString('hex') + '\n')
+  const file = join(dir, 'payload.txt')
+  writeFileSync(file, 'signed with an existing key')
+  const envPath = join(dir, 'existing.attestation.json')
+  const signed = await captureStdout(() => attest([
+    'sign', '--secret-key', '@' + join(dir, 'secret-key.hex'), '--public-key', '@' + join(dir, 'public-key.hex'),
+    '--file', file, '--out', envPath,
+  ]))
+  assert.equal(signed.rc, 0)
+  const envelope = JSON.parse(readFileSync(envPath, 'utf-8'))
+  assert.equal(envelope.alg, 'ML-DSA-65')
+  assert.equal(Buffer.from(envelope.sig, 'base64url').length, 3309)
+  const verified = await captureStdout(() => attest(['verify', '--public-key', '@' + join(dir, 'public-key.hex'), '--attestation', envPath]))
+  assert.equal(verified.rc, 0)
+  // Rotation from it, with no --algorithm, keeps the old key's set.
+  mkdirSync(join(dir, 'rotated'))
+  const r = await rotateFrom(join(dir, 'rotated'), O65)
+  assert.equal(r.publicHex.length, 1952 * 2)
+  assert.equal(r.manifest.signature.alg, 'ml-dsa-65')
+  assert.deepEqual(verifyRotationManifest(r.manifest, O65.publicKey), { ok: true })
 }))
 
 test('keygen: an unknown --algorithm is refused', async () => {

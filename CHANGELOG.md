@@ -1,5 +1,28 @@
 # Changelog
 
+## 2.3.0 (2026-10-07)
+
+**ML-DSA-87 is the default for `keygen`.**
+
+`kxco-pq keygen` without `--algorithm` now derives an ML-DSA-87 keypair. Per
+FIPS 204, the secret key is 4896 bytes, the public key 2592 bytes and each
+signature 4627 bytes. `attest sign` signs with the set of the secret key it is
+given, so a key from `keygen` signs ML-DSA-87 envelopes.
+
+To keep the old behaviour, pass `--algorithm ml-dsa-65` to `keygen`. The same
+master and info label then give the same ML-DSA-65 keypair, and the same kid,
+as earlier versions did.
+
+Existing keys are unaffected. A key's length decides its set in every command,
+so key files already on disk sign, verify and fingerprint as before. `rotate`
+keeps the outgoing key's set for the new key unless `--algorithm` names one. A
+rotation from an ML-DSA-65 key still gives an ML-DSA-65 key.
+`--algorithm ml-dsa-87` moves it to ML-DSA-87, with the handoff signed by the
+old key. Manifests and attestations made by earlier versions verify unchanged.
+
+The `kxco-pq-attest` floor is now ^2.1.0, the first release that signs
+ML-DSA-87 envelopes, so `attest sign` works with the new default key.
+
 ## 2.2.1
 
 Documentation. No source change.

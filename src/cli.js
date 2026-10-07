@@ -10,12 +10,12 @@ const USAGE = `kxco-pq — post-quantum key tooling for the kxco-post-quantum ec
 
 Usage:
   kxco-pq keygen      --master <hex|@file> --info <label> --out-dir <dir>
-                      [--algorithm ml-dsa-65|ml-dsa-87]
+                      [--algorithm ml-dsa-87|ml-dsa-65]
   kxco-pq fingerprint <pubkey-hex | @file>
   kxco-pq rotate      --old-secret <@file> --old-kid <hex> --new-master <hex|@file>
                       --info <label> --issuer <domain> --out-dir <dir>
                       [--previous-active-from <ISO8601>]
-                      [--algorithm ml-dsa-65|ml-dsa-87]
+                      [--algorithm ml-dsa-87|ml-dsa-65]
   kxco-pq attest sign   --secret-key <hex|@file> --public-key <hex|@file> --file <path> [--out <path>]
   kxco-pq attest verify --public-key <hex|@file> --attestation <path>
 
@@ -23,7 +23,9 @@ Common:
   --master / --new-master / --old-secret accept either a 64-char hex string OR
   '@/path/to/file' to read the hex from that file. Whitespace is stripped.
   --algorithm picks the new key's ML-DSA parameter set. keygen defaults to
-  ml-dsa-65; rotate defaults to the old key's set, read from --old-secret.
+  ml-dsa-87; pass --algorithm ml-dsa-65 for an ML-DSA-65 key. rotate defaults
+  to the old key's set, read from --old-secret. attest sign uses the set of
+  the secret key it is given. Existing key files keep working unchanged.
 
 Output files (keygen + rotate):
   <out-dir>/secret-key.hex   (chmod 600 advised by user; CLI does not enforce)
