@@ -1,7 +1,7 @@
 name: CI
 
 # Runs on every push and PR. Matrix over the Node versions declared in
-# package.json engines (>=20.19). All actions pinned by 40-char SHA.
+# package.json engines (>=22.12). All actions pinned by 40-char SHA.
 
 on:
   push:
@@ -20,7 +20,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node: ['20', '22', '24']
+        node: ['22', '24', '26']
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
