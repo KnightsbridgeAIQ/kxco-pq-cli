@@ -1,5 +1,23 @@
 # Changelog
 
+## 2.4.1 (2026-10-25)
+
+Documentation, the locked dependencies and the workflow actions. No source
+file changed and the API is the same.
+
+The README says `--relay` and `--identity-file` anchor a key rotation on
+Armature, where it said the KXCO chain.
+
+The lockfile installs `kxco-pq-attest` 2.3.0, where 2.4.0 locked 2.1.1, and
+with it `@noble/post-quantum` 0.7.1 and `@noble/curves`, `@noble/ciphers` and
+`@noble/hashes` 2.4.0. The declared range, `^2.1.0`, is unchanged, so an
+install from npm resolves its dependencies as before. The development
+dependency `kxco-post-quantum` is locked at 1.11.1, where it was 1.7.8.
+
+The workflows pin newer actions: `actions/setup-node` 7.1.0,
+`actions/upload-artifact` 7.0.2, `ossf/scorecard-action` 2.5.0 and a newer
+commit of `github/codeql-action/upload-sarif`.
+
 ## 2.4.0 (2026-10-09)
 
 Runtime support. No change to the API or its behaviour.
