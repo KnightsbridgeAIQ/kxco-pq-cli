@@ -202,7 +202,7 @@ Prints `VALID` with the signer kid, issue time and payload size, or `INVALID` wi
 
 ## Key rotation on-chain
 
-Pass `--relay` and `--identity-file` to anchor the rotation to the KXCO chain in
+Pass `--relay` and `--identity-file` to anchor the rotation on Armature in
 the same operation. Install [`kxco-pq-chain`](https://www.npmjs.com/package/kxco-pq-chain)
 alongside the CLI, and set `KXCO_LICENCE_KEY` to your licence for the hosted
 relay:
