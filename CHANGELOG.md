@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.4.2 (2026-10-29)
+
+Dependencies. No source file changed and the API is the same.
+
+- `kxco-pq-attest` dependency floor moves from `^2.1.0` to `^2.3.0`.
+- `kxco-post-quantum` peer dependency floor moves from `^1.6.0` to `^1.13.0`, the current release.
+- `kxco-post-quantum` development dependency floor moves from `^1.6.0` to `^1.13.0`.
+
 ## 2.4.1 (2026-10-25)
 
 Documentation, the locked dependencies and the workflow actions. No source
